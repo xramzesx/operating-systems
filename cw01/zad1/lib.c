@@ -7,11 +7,11 @@
 //// UTILS ////
 
 void message_log(const char * message) {
-    printf("[log]: %s", message);
+    printf("\033[0;32m[log]\033[0m: %s\n", message);
 }
 
 void error_log(const char * error_message) {
-    printf("[error]: %s\n", error_message);
+    printf("\033[0;31m[error]\033[0m: %s\n", error_message);
 }
 
 void to_lower(char * str) {
