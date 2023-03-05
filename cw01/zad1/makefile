@@ -9,8 +9,8 @@ shared-lib:
 static-test:
 	make static-lib
 	gcc -c static-test.c -Wall
-	gcc static-test.o lib.a -o static_test -Wall
-	./static_test
+	gcc static-test.o lib.a -o static_test.exe -Wall
+	./static_test.exe
 
 all:
 	make static-lib
