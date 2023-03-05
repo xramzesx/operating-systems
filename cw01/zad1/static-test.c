@@ -38,6 +38,6 @@ int main () {
     destroy_data(data);
     data = NULL;
 
-    printf("[log] test ends successfully\n");
+    message_log("test ends successfully");
     return 0;
 }
