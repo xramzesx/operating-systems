@@ -15,3 +15,6 @@ static-test:
 all:
 	make static-lib
 	make shared-lib
+
+clean:
+	rm -f *.o *.so *.exe
