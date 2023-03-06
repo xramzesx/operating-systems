@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 #include "lib.h"
 
@@ -37,13 +38,21 @@ Repl get_repl ( const char * command ) {
 }
 
 int main () {
+    const char delimiters[] = " ";
 
-    char buffer[MAX_LINE_LENGTH];
+    char main_buffer[MAX_LINE_LENGTH];
     char filename[MAX_BUFFER_SIZE];
 
     Data * data = NULL;
     size_t index = 0;
 
+    while ( fgets(main_buffer, MAX_BUFFER_SIZE, stdin )) {
+
+        char * buffer = main_buffer;
+
+        while ( *buffer && isspace(*buffer) ) {
+            buffer++;
+        }
 
     while ( fgets(buffer, MAX_BUFFER_SIZE, stdin )) {
         char * argument;
@@ -120,6 +129,7 @@ int main () {
                 break;
             
             case Delete:
+
                 if ( NULL == data ) {
                     error_log("initialize first!");
                     break;
@@ -127,7 +137,12 @@ int main () {
 
                 index = 0;
 
-                if ( sscanf( buffer + strlen(argument), " %ld", &index ) != 1 ) {
+                if ( 0 != strcmp(strtok( buffer + strlen(argument), delimiters ) , "index" ) ) {
+                    error_log("missing \"index\" argument; valid syntax: `delete index <index>`");
+                    break;
+                }
+
+                if ( sscanf(strtok(NULL, delimiters), " %ld", &index ) != 1 ) {
                     error_log("invalid argument type");
                     break;
                 };
@@ -155,6 +170,7 @@ int main () {
             default:
                 error_log("unknown command");
                 break;
+        
         }
 
     }
