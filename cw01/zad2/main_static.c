@@ -2,7 +2,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/times.h>
+
 #include "lib.h"
+//// REPL ///
 
 #define MAX_BUFFER_SIZE 4096
 
@@ -37,6 +41,8 @@ Repl get_repl ( const char * command ) {
 
 }
 
+//// MAIN ////
+
 int main () {
     const char delimiters[] = " ";
 
@@ -46,6 +52,7 @@ int main () {
     Data * data = NULL;
     size_t index = 0;
 
+
     while ( fgets(main_buffer, MAX_BUFFER_SIZE, stdin )) {
 
         char * buffer = main_buffer;
@@ -54,13 +61,21 @@ int main () {
             buffer++;
         }
 
-    while ( fgets(buffer, MAX_BUFFER_SIZE, stdin )) {
-        char * argument;
-        sscanf(buffer, "%s", argument);
+        //// TIME SETUP ////
+        
+        struct timespec ts_real_start, ts_real_end;
+        struct tms tms_start, tms_end;
+
+        clock_gettime(CLOCK_REALTIME, &ts_real_start);
+        times(&tms_start);
+
+        //// INIT REPL ////
 
         char argument[BUFSIZ];
         sscanf(buffer, "%s ", argument);
         to_lower(argument);
+
+        //// REPL BODY /////
 
         switch ( get_repl(argument) ) {
             case Init:
@@ -88,7 +103,6 @@ int main () {
                     error_log("uninitialized structure, init first!");
                     break;
                 }
-
                 
                 filename[0] = 0;
 
@@ -171,7 +185,21 @@ int main () {
                 error_log("unknown command");
                 break;
         
+            buffer = NULL;
         }
+
+        //// TIME SUMMARIZE ////
+
+        clock_gettime(CLOCK_REALTIME, &ts_real_end);
+        times(&tms_end);
+
+
+        time_log(
+            ts_real_start, 
+            ts_real_end, 
+            tms_start, 
+            tms_end
+        );
 
     }
     
