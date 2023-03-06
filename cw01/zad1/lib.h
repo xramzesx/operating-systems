@@ -6,6 +6,14 @@
 
 void message_log( const char * message );
 void error_log( const char * error_message );
+
+void time_log( 
+    struct timespec ts_start,  
+    struct timespec ts_end,
+    struct tms tms_start,
+    struct tms tms_end 
+);
+
 void to_lower(char * str);
 
 //// STRUCTURE ////

@@ -2,9 +2,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
+#include <sys/times.h>
+#include <unistd.h>
+
+#define MS_SCALE 1000
+#define NS_SCALE 1000000000
+
 #include "lib.h"
 
 //// UTILS ////
+
+void time_log( 
+    struct timespec ts_start,  
+    struct timespec ts_end,
+    struct tms tms_start,
+    struct tms tms_end 
+) {
+    double real_time = (double)(ts_end.tv_sec - ts_start.tv_sec) + (double)(ts_end.tv_nsec - ts_start.tv_nsec) / NS_SCALE;
+    double user_time = (double)(tms_end.tms_utime - tms_start.tms_utime) / sysconf(_SC_CLK_TCK);
+    double system_time = (double)(tms_end.tms_stime - tms_start.tms_stime) / sysconf(_SC_CLK_TCK);
+
+    printf("\033[94m[time]\033[0m:\treal: %.6f\t user: %.6f\t sys: %.6f\n", real_time, user_time, system_time);
+}
 
 void message_log(const char * message) {
     printf("\033[0;32m[log]\033[0m: %s\n", message);
