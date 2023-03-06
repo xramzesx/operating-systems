@@ -15,10 +15,10 @@ void error_log(const char * error_message) {
 }
 
 void to_lower(char * str) {
+    if (str == NULL) return;
     for (char *p = str; *p; p++)
         *p = tolower(*p);
 }
-
 
 //// STRUCTIRE METHODS ///
 
@@ -42,25 +42,28 @@ Data * generate_data (size_t capacity, size_t size) {
     return data;
 }
 
-void add_block (Data *data, void * block) {
+int add_block (Data *data, void * block) {
     if (data->capacity <= data->size )
-        return;
+        return 0;
     
     data->blocks[data->size++] = block;
+
+    return 1;
 }
 
-void delete_block (Data * data, size_t index) {
+int delete_block (Data * data, size_t index) {
     if ( data->capacity <= index )
-        return;
+        return 0;
     
     if ( index < 0 )
-        return;
+        return 0;
     
     if ( data->blocks[index] != NULL ) {
         free(data->blocks[index]);
         data->blocks[index] = NULL;
     }
-    
+
+    return 1;    
 }
 
 void * get_block(Data * data, size_t index) {
@@ -89,13 +92,15 @@ char * read_file_block(const char *filename) {
 
     if (NULL == file) {
         error_log("unable to open file");
-        exit(1);
+        // exit(1);
+        return NULL;
     }
 
     /// note: block files are single-line 
     if (NULL == fgets(line, MAX_BLOCK_SIZE, file)) {
         error_log("corrupted file");
-        exit(1);
+        // exit(1);
+        return NULL;
     }
 
     //// TRIM ////
@@ -120,12 +125,14 @@ char * read_file_block(const char *filename) {
 
 //// MAIN METHOD ////
 
-void word_count (Data *data, const char *filename) {
+int word_count (Data *data, const char *filename) {
+    int error_code = 0;
+    
     //// VALIDATE SIZE ////
 
     if (data->capacity == data->size ) {
         error_log("structure is full");
-        return;
+        return 0;
     }
     
     //// GENERATE TMP FILENAME ////
@@ -134,7 +141,8 @@ void word_count (Data *data, const char *filename) {
     
     if ( mkstemp(tmp_filename) == -1 ) {
         error_log("failed to generate temporary filename");
-        exit(1);
+        // exit(1);
+        return 0;
     }
 
     //// GENEREATE TMP FILE ////
@@ -151,39 +159,54 @@ void word_count (Data *data, const char *filename) {
 
     if ( command == NULL ) {
         error_log("failed to allocate memory for command `wc`");
-        exit(1);
+        // exit(1);
+        return 0;
     }
 
     if (sprintf( command, "wc \"%s\" > %s", filename, tmp_filename ) == -1) {
         error_log("failed to concatenate string");
-        exit(1);
+        // exit(1);
+        return 0;
     }    
 
-    system(command);
+    error_code = system(command);
     free(command);
 
+    if (error_code)
+        return 0;
 
     //// READ RESULTS ////
 
-    add_block( 
-        data, 
-        read_file_block( tmp_filename )
-    );
+    char * block = read_file_block( tmp_filename );
+
+    if ( block == NULL ) {
+        return 0;
+    }
+
+    if (add_block(data, block) == 0) {
+        return 0;
+    };
+
+    block = NULL;
 
     //// REMOVE TMP FILE ////
 
     command = calloc( strlen("rm \"\"") + strlen(tmp_filename) + 1, sizeof(char));
 
-    if (NULL == command ) {
+    if (NULL == command) {
         error_log("failed to allocate memory for command `rm`");
-        exit(1);
+        // exit(1);
+        return 0;
     }
 
     if (sprintf(command, "rm \"%s\"", tmp_filename) == -1) {
         error_log("failed to concatenate string");
-        exit(1);
+        // exit(1);
+        return 0;
     }
 
-    system(command);
+    error_code = system(command);
     free(command);
+
+    return error_code == 0;
 }

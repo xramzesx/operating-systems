@@ -23,10 +23,10 @@ typedef struct Data Data;
 Data * generate_data (size_t capacity, size_t size);
 void destroy_data ( Data * data );
 
-void delete_block ( Data * data, size_t index );
-void add_block ( Data *data, void * block );
+int delete_block ( Data * data, size_t index );
+int add_block ( Data *data, void * block );
 void * get_block( Data * data, size_t index );
 
 //// MAIN METHODS ////
 
-void word_count ( Data *data, const char *filename );
+int word_count ( Data *data, const char *filename );
