@@ -6,6 +6,13 @@
 #include <sys/times.h>
 
 #include "lib.h"
+
+//// DYNAMIC ONLY ////
+
+#ifdef DLL
+    #include <dlfcn.h>
+#endif
+
 //// REPL ///
 
 #define MAX_BUFFER_SIZE 4096
@@ -21,7 +28,7 @@ typedef enum Repl Repl;
 Repl get_repl ( const char * command ) {
     if ( NULL == command ) 
         return Default;
-
+    
     if ( 0 == strcmp(command, "init") )
         return Init;
     
@@ -44,15 +51,93 @@ Repl get_repl ( const char * command ) {
 //// MAIN ////
 
 int main () {
-    const char delimiters[] = " ";
 
-    char main_buffer[MAX_LINE_LENGTH];
+    //// DYNAMIC ONLY ////
+
+    #ifdef DLL
+        void *hook = dlopen("./liblib.so", RTLD_LAZY );
+        if (!hook) {
+            printf("[error]: unable to open library `liblib.so`\n");
+            return 1;
+        }
+
+        void (*error_log)(const char *) = dlsym( hook, "error_log");
+
+        if (dlerror() != NULL) {
+            printf("[error]: unable to hook `error_log` function\n");
+            return 1;
+        }
+
+        void (*message_log)(const char *) = dlsym( hook, "message_log");
+
+        if (dlerror() != NULL) {
+            error_log("unable to hook `message_log` function");
+            return 1;
+        }
+
+        void (*time_log)( 
+            struct timespec,
+            struct timespec,
+            struct tms,
+            struct tms 
+        ) = dlsym(hook, "time_log");
+
+        if (dlerror() != NULL) {
+            error_log("unable to hook `time_log` function");
+            return 1;
+        }
+
+        void (*to_lower)(char * str) = dlsym(hook, "to_lower");
+
+        if (dlerror() != NULL) {
+            error_log("unable to hook `to_lower` function");
+            return 1;
+        }
+
+        Data * (*generate_data) (size_t, size_t) = dlsym(hook, "generate_data");
+        
+        if (dlerror() != NULL) {
+            error_log("unable to hook `generate_data` function");
+            return 1;
+        }
+
+        void (*destroy_data) ( Data *) = dlsym(hook, "destroy_data");
+        
+        if (dlerror() != NULL) {
+            error_log("unable to hook `destroy_data` function");
+            return 1;
+        }
+
+        int (*delete_block) ( Data *, size_t ) = dlsym(hook, "delete_block");
+        
+        if (dlerror() != NULL) {
+            error_log("unable to hook `delete_block` function");
+            return 1;
+        }
+
+        void * (*get_block) ( Data *, size_t ) = dlsym(hook, "get_block");
+        
+        if (dlerror() != NULL) {
+            error_log("unable to hook `get_block` function");
+            return 1;
+        }
+
+        int (* word_count) ( Data *data, const char *filename ) = dlsym(hook, "word_count");
+        
+        if (dlerror() != NULL) {
+            error_log("unable to hook `word_count` function");
+            return 1;
+        }
+    #endif
+    
+    const char delimiters[] = " ";
+    
+    char main_buffer[MAX_BUFFER_SIZE];
     char filename[MAX_BUFFER_SIZE];
 
     Data * data = NULL;
     size_t index = 0;
-
-
+    
     while ( fgets(main_buffer, MAX_BUFFER_SIZE, stdin )) {
 
         char * buffer = main_buffer;
@@ -123,23 +208,23 @@ int main () {
 
                 if ( NULL == data ) {
                     error_log("initialize first!");
-                break;
+                    break;
                 }
-            
+
                 index = 0;
-            
+
                 if ( sscanf( buffer + strlen(argument), " %ld", &index ) != 1 ) {
                     error_log("invalid argument type");
-                break;
+                    break;
                 };
-            
+
                 char * result = (char *) get_block(data, index); 
                 if ( result )
                     printf("%s\n", result);
                 else
                     printf("/empty/\n");
                 result = NULL;
-            
+
                 break;
             
             case Delete:
@@ -166,7 +251,7 @@ int main () {
                 } else {
                     message_log("block is already empty");
                 }
-            
+
                 break;
             
             case Destroy:
@@ -176,8 +261,8 @@ int main () {
                     break;
                 }
                 
-                    destroy_data(data);
-                    data = NULL;
+                destroy_data(data);
+                data = NULL;
                 message_log("structure destroyed");
                 break;
             
@@ -204,6 +289,11 @@ int main () {
     }
     
 
+    //// END ////
+
+    #ifdef DLL
+        dlclose(hook);
+    #endif
 
     return 0;
 }
