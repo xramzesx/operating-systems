@@ -2,6 +2,9 @@
 #define MAX_LINE_LENGTH 4096
 #define MAX_BLOCK_SIZE BUFSIZ
 
+#include <sys/times.h>
+#include <unistd.h>
+
 //// UTILS ////
 
 void message_log( const char * message );

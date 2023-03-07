@@ -23,15 +23,15 @@ void time_log(
     double user_time = (double)(tms_end.tms_utime - tms_start.tms_utime) / sysconf(_SC_CLK_TCK);
     double system_time = (double)(tms_end.tms_stime - tms_start.tms_stime) / sysconf(_SC_CLK_TCK);
 
-    printf("\033[94m[time]\033[0m:\treal: %.6f\t user: %.6f\t sys: %.6f\n", real_time, user_time, system_time);
+    printf("[time]:\treal: %.6f\t user: %.6f\t sys: %.6f\n", real_time, user_time, system_time);
 }
 
 void message_log(const char * message) {
-    printf("\033[0;32m[log]\033[0m: %s\n", message);
+    printf("[log]: %s\n", message);
 }
 
 void error_log(const char * error_message) {
-    printf("\033[0;31m[error]\033[0m: %s\n", error_message);
+    printf("[error]: %s\n", error_message);
 }
 
 void to_lower(char * str) {

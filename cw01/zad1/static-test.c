@@ -10,8 +10,8 @@ int main () {
     printf("a) success\n   Initial size:\n   - capacity = %ld\n   - size = %ld\n", data->capacity, data->size);
     
     /// b) ///
-    word_count(data, "file1.txt");
-    word_count(data, "file2.txt");
+    word_count(data, "examples/file1.txt");
+    word_count(data, "examples/file2.txt");
     printf("b) success\n");
     
     /// c) ///

@@ -220,7 +220,7 @@ int main () {
 
                 char * result = (char *) get_block(data, index); 
                 if ( result )
-                    printf("%s\n", result);
+                    printf("[show]: %s\n", result);
                 else
                     printf("/empty/\n");
                 result = NULL;
