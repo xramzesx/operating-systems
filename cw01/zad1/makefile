@@ -17,4 +17,4 @@ all:
 	make shared-lib
 
 clean:
-	rm -f *.o *.so *.exe
+	rm -f *.o *.so *.exe *.a
