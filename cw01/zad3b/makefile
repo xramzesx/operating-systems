@@ -52,12 +52,16 @@ test-dynamic:
 	make main-dynamic
 	./main_dynamic.exe < $(FILE) > results_$$(echo $(OPT) | cut -c 2-)_dynamic.txt
 
+### SINGLE TEST ###
+
 test:
 	make test-static
 	make test-shared
 	make test-dynamic
 
 	make clean
+
+### COMPLETE TEST ###
 
 test-all:
 	make test OPT=-O
