@@ -163,7 +163,7 @@ int main () {
         //// REPL BODY /////
 
         switch ( get_repl(argument) ) {
-            case Init:
+            case Init: ;
                 size_t capacity = 0;
 
                 if ( sscanf( buffer + strlen(argument), " %ld", &capacity ) != 1) {
