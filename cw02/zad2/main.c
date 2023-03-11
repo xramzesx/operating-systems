@@ -7,6 +7,10 @@
 
 #include "reverse.h"
 
+#ifndef CHUNK_SIZE
+    #define CHUNK_SIZE 1024
+#endif
+
 int main (int argc, char **argv) {
 
     //// VALIDATION ////
@@ -39,9 +43,7 @@ int main (int argc, char **argv) {
 
     //// RESULT ////
 
-    printf("buff[1]: %.6lf\n", get_time(&lib_real_start, &lib_real_end) );
-    printf("buff[1024]: %.6lf\n", get_time(&lib_real_start, &lib_real_end) );
-
+    printf("buff[%d]: %.6lf\n", CHUNK_SIZE, get_time(&lib_real_start, &lib_real_end) );
 
     return 0;
 }

@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include <unistd.h>
 #include <time.h>
@@ -13,6 +15,22 @@
 
 double get_time( struct timespec * ts_start, struct timespec * ts_end) {
     return (double)(ts_end->tv_sec - ts_start->tv_sec) + (double)(ts_end->tv_nsec - ts_start->tv_nsec) / NS_SCALE;
+}
+
+size_t min ( size_t a, size_t b ) {
+    return a < b ? a : b;
+}
+
+char * rev_chunk (char *str, size_t chunk_size) {   
+    char * result = malloc ( chunk_size + 1);
+    
+    result[chunk_size] = 0;
+
+    for ( int i = 0; i < chunk_size; i++ ) {
+        result[chunk_size - i - 1] = str[i];
+    }
+
+    return result;
 }
 
 //// MAIN ////
@@ -30,43 +48,42 @@ bool reverse_file(
 
     //// OPEN FILE STREAMS ////
 
-    if ( !(source = fopen(f_source, "r")) ) {
+    if ( !(source = fopen(f_source, "rb")) ) {
         printf("[error] unable to open file '%s'\n", f_source);
         return false;
     }
 
-    if ( !(destination = fopen( f_destination, "w")) ) {
+    if ( !(destination = fopen( f_destination, "wb")) ) {
         printf("[error] unable to open file '%s'\n", f_destination);
+        fclose(source);
         return false;
     }
 
     //// REVERSE READ ////
 
-    fseek(source, 0, SEEK_END);
+    fseek( source, 0, SEEK_END );
     
-    size_t file_length = ftell(source);    
+    do {
+        //// GET CHUNK SIZE ////
+        size_t chunk_size = min(buffer_size, ftell(source));
 
-    while ( file_length ) {
-        int block_length = file_length < buffer_size 
-            ? file_length 
-            : buffer_size;
+        //// READ CHUNK /////
 
-        fseek(source, - block_length, SEEK_CUR);
+        fseek(source, -chunk_size, SEEK_CUR);
+        fread(buffer, sizeof(char), chunk_size, source);
+        fseek(source, -chunk_size , SEEK_CUR);
 
+        //// WRITE CHUNK ////
 
-        if ( block_length != fread(buffer, sizeof(char), block_length, source)) {
-            printf("[error] failed to read file '%s'\n", f_source);
-            return false;
-        }
+        char * reversed = rev_chunk(buffer, chunk_size);
 
+        fwrite( reversed, sizeof(char), chunk_size, destination);
         
-        for (int i = block_length - 1; i >= 0; i-- ){
-            printf("%c", buffer[i]);
-        }
+        free(reversed);
 
-        file_length -= block_length;
-    }
-    
+    } while ( ftell(source) );
+
+
     //// CLOSE STREAMS ////
 
     fclose(source);
