@@ -6,8 +6,6 @@
 
 #include "replace.h"
 
-#define NS_SCALE 1000000000
-
 int main (int argc, char **argv) {
 
     //// PREVALIDATION ////
@@ -55,17 +53,17 @@ int main (int argc, char **argv) {
 
         //// PROCESSING ////
 
-    struct timespec sys_real_start, sys_real_end;
+        struct timespec sys_real_start, sys_real_end;
 
-    clock_gettime(CLOCK_REALTIME, &sys_real_start);
+        clock_gettime(CLOCK_REALTIME, &sys_real_start);
         if ( !sys_tr(c_before, c_after, f_source, f_destination) ) {
             printf("[error] process exit\n");
             return 1;
         }
-    clock_gettime(CLOCK_REALTIME, &sys_real_end);
+        clock_gettime(CLOCK_REALTIME, &sys_real_end);
 
         //// RESULT ////
-
+        
         printf("sys: %.6lf\n", get_time(&sys_real_start, &sys_real_end) );
     
     #endif
@@ -75,18 +73,18 @@ int main (int argc, char **argv) {
     #ifdef LIB
 
         //// PROCESSING ////
-    struct timespec lib_real_start, lib_real_end;
+        struct timespec lib_real_start, lib_real_end;
 
-    clock_gettime(CLOCK_REALTIME, &lib_real_start);
+        clock_gettime(CLOCK_REALTIME, &lib_real_start);
         if( !lib_tr(c_before, c_after, f_source, f_destination) ) {
             printf("[error] process exit\n");
             return 1;
         }
-    clock_gettime(CLOCK_REALTIME, &lib_real_end);
-    
+        clock_gettime(CLOCK_REALTIME, &lib_real_end);
+
         //// RESULT ////
 
-    printf("lib: %.6lf\n", get_time(&lib_real_start, &lib_real_end) );
+        printf("lib: %.6lf\n", get_time(&lib_real_start, &lib_real_end) );
 
     #endif
 

@@ -27,7 +27,7 @@ all:
 
 #### COMPARE WITH TR ####
 
-compare:
+test:
 	make clean-all
 	make all
 	

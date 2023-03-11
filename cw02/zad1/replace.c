@@ -31,12 +31,12 @@ bool lib_tr (
     //// OPEN FILE STREAMS ////
 
     if ( !(source = fopen(f_source, "r")) ) {
-        printf("[error] unable to open file '%s'", f_source);
+        printf("[error] unable to open file '%s'\n", f_source);
         return false;
     }
 
     if ( !(destination = fopen( f_destination, "w")) ) {
-        printf("[error] unable to open file '%s'", f_destination);
+        printf("[error] unable to open file '%s'\n", f_destination);
         return false;
     }
 
