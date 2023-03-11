@@ -19,7 +19,7 @@ double get_time( struct timespec * ts_start, struct timespec * ts_end) {
 
 //// REPLACE FUNCTIONS ////
 
-void lib_tr ( 
+bool lib_tr ( 
     const char c_before, 
     const char c_after, 
     const char * f_source, 
@@ -32,12 +32,12 @@ void lib_tr (
 
     if ( !(source = fopen(f_source, "r")) ) {
         printf("[error] unable to open file '%s'", f_source);
-        return;
+        return false;
     }
 
     if ( !(destination = fopen( f_destination, "w")) ) {
         printf("[error] unable to open file '%s'", f_destination);
-        return;
+        return false;
     }
 
     //// FILE PROCESSING ////
@@ -62,22 +62,34 @@ void lib_tr (
     fclose(source);
     fclose(destination);
 
+    return true;
 }
 
 
-void sys_tr (
+bool sys_tr (
     const char c_before,
     const char c_after,
     const char * f_source,
     const char * f_destination
 ) {
-
     //// OPEN STREAMS ////
 
     int i_source = open(f_source, O_RDONLY);
     int i_destination = open(f_destination, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 
     char c_buff;
+
+    //// FILES VALIDATION ////
+
+    if ( -1 == i_source ) {
+        printf("[error]: unable to find file '%s'\n", f_source);
+        return false;
+    }
+
+    if ( -1 == i_destination ) {
+        printf("[error]: unable to write to file '%s'\n", f_destination);
+        return false;
+    }
 
     //// FILE PROCESSING ////
 
@@ -90,5 +102,7 @@ void sys_tr (
             1
         );
     }
+
+    return true;
 
 }

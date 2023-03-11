@@ -1,8 +1,4 @@
-#include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
@@ -62,7 +58,10 @@ int main (int argc, char **argv) {
     struct timespec sys_real_start, sys_real_end;
 
     clock_gettime(CLOCK_REALTIME, &sys_real_start);
-    sys_tr(c_before, c_after, f_source, f_destination);
+        if ( !sys_tr(c_before, c_after, f_source, f_destination) ) {
+            printf("[error] process exit\n");
+            return 1;
+        }
     clock_gettime(CLOCK_REALTIME, &sys_real_end);
 
         //// RESULT ////
@@ -76,11 +75,13 @@ int main (int argc, char **argv) {
     #ifdef LIB
 
         //// PROCESSING ////
-
     struct timespec lib_real_start, lib_real_end;
 
     clock_gettime(CLOCK_REALTIME, &lib_real_start);
-    lib_tr(c_before, c_after, f_source, f_destination);
+        if( !lib_tr(c_before, c_after, f_source, f_destination) ) {
+            printf("[error] process exit\n");
+            return 1;
+        }
     clock_gettime(CLOCK_REALTIME, &lib_real_end);
     
         //// RESULT ////
