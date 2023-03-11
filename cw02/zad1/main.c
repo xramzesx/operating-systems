@@ -14,6 +14,15 @@
 
 int main (int argc, char **argv) {
 
+    //// PREVALIDATION ////
+
+    #if !defined(SYS) && !defined(LIB)
+
+        printf("[error] compiled with fails - neither SYS nor LIB is defined\n");
+        return 1;
+
+    #endif
+
     //// VALIDATION ////
 
     if ( argc < 5 ) {
@@ -44,10 +53,11 @@ int main (int argc, char **argv) {
     char * f_source      = argv[3];
     char * f_destination = argv[4];
 
-    for (int i = 0; i < argc; i++ )
-        printf("%s\n", argv[i]);
-
     //// SYS ////
+
+    #ifdef SYS
+
+        //// PROCESSING ////
 
     struct timespec sys_real_start, sys_real_end;
 
@@ -55,8 +65,17 @@ int main (int argc, char **argv) {
     sys_tr(c_before, c_after, f_source, f_destination);
     clock_gettime(CLOCK_REALTIME, &sys_real_end);
 
+        //// RESULT ////
+
+        printf("sys: %.6lf\n", get_time(&sys_real_start, &sys_real_end) );
+    
+    #endif
 
     //// LIB ////
+
+    #ifdef LIB
+
+        //// PROCESSING ////
 
     struct timespec lib_real_start, lib_real_end;
 
@@ -64,11 +83,11 @@ int main (int argc, char **argv) {
     lib_tr(c_before, c_after, f_source, f_destination);
     clock_gettime(CLOCK_REALTIME, &lib_real_end);
     
+        //// RESULT ////
 
-    //// RESULTS ////
-
-    printf("sys: %.6lf\n", get_time(&sys_real_start, &sys_real_end) );
     printf("lib: %.6lf\n", get_time(&lib_real_start, &lib_real_end) );
+
+    #endif
 
     return 0;
 }

@@ -1,8 +1,25 @@
 CFLAGS = -Wall
 
+static-lib:
+	gcc -c replace.c ${CFLAGS}
+	ar rcs replace.a replace.o
+
+main-sys:
+	make static-lib
+	gcc -c main.c -D SYS ${CFLAGS}
+	gcc main.o replace.a -o main_sys.exe ${CFLAGS}
+
+main-lib:
+	make static-lib
+	gcc -c main.c -D LIB ${CFLAGS}
+	gcc main.o replace.a -o main_lib.exe ${CFLAGS}
+
+
 all:
-	gcc -c main.c ${CFLAGS}
-	gcc main.o -o main.exe ${CFLAGS}
+	make clean
+	make main-sys
+	make main-lib
+
 
 
 clean:
