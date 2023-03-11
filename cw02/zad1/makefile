@@ -1,4 +1,7 @@
 CFLAGS = -Wall
+EX_FILE = file
+
+#### COMPILATION ####
 
 static-lib:
 	gcc -c replace.c ${CFLAGS}
@@ -15,12 +18,31 @@ main-lib:
 	gcc main.o replace.a -o main_lib.exe ${CFLAGS}
 
 
+#### MAIN ####
+
 all:
 	make clean
 	make main-sys
 	make main-lib
 
+#### COMPARE WITH TR ####
 
+compare:
+	make clean-all
+	make all
+	
+	./main_sys.exe a A ${EX_FILE}.txt ${EX_FILE}.sys.txt > 	pomiar_zad_1.txt
+	./main_lib.exe a A ${EX_FILE}.txt ${EX_FILE}.lib.txt >> pomiar_zad_1.txt
+	cat ${EX_FILE}.txt | tr a A > ${EX_FILE}.tmp.txt
+	
+	diff -s ${EX_FILE}.tmp.txt ${EX_FILE}.sys.txt
+	diff -s ${EX_FILE}.tmp.txt ${EX_FILE}.lib.txt
+
+#### UTILS ####
 
 clean:
 	rm -f *.o *.so *.exe *.a
+
+clean-all:
+	make clean
+	rm -f *.lib.txt *.sys.txt *.tmp.txt
