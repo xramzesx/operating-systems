@@ -7,21 +7,19 @@ static-lib:
 	ar rcs reverse.a reverse.o
 
 main:
-	echo ${CHUNK_SIZE}
-	make static-lib
+	@make -s static-lib
 	gcc -c main.c ${CFLAGS} -D CHUNK_SIZE=${CHUNK_SIZE}
 	gcc main.o reverse.a -o main_chunk_${CHUNK_SIZE}.exe 
-	echo ${CHUNK_SIZE}
 
 all:
-	make main CHUNK_SIZE=1
-	make main CHUNK_SIZE=1024
+	@make -s main CHUNK_SIZE=1
+	@make -s main CHUNK_SIZE=1024
 
 #### TESTS ####
 
 test:
-	make clean
-	make all
+	@make -s clean
+	@make -s all
 
 	./main_chunk_1.exe 	  ${EX_FILE}.txt ${EX_FILE}.1.tmp.txt	 >  pomiar_zad_2.txt
 	./main_chunk_1024.exe ${EX_FILE}.txt ${EX_FILE}.1024.tmp.txt >> pomiar_zad_2.txt
@@ -34,8 +32,8 @@ test:
 	
 
 test-tac:
-	make clean
-	make all
+	@make -s clean
+	@make -s all
 
 	./main_chunk_1.exe 	  ${EX_FILE}.txt ${EX_FILE}.1.tmp.txt	 >  pomiar_zad_2.txt
 	./main_chunk_1024.exe ${EX_FILE}.txt ${EX_FILE}.1024.tmp.txt >> pomiar_zad_2.txt
