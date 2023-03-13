@@ -1,8 +1,7 @@
 #include <ftw.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "dir.h"
-
-#define NOPENFD 20
 
 int main (int argc, char **argv) {
 
@@ -18,7 +17,7 @@ int main (int argc, char **argv) {
 
     const char * path = argv[1];
 
-    if ( ftw( path, process_file, NOPENFD ) ) {
+    if ( ftw( path, process_file, sysconf(_SC_OPEN_MAX) ) ) {
         printf("[error] traversing failed\n");
         return 1;
     }
