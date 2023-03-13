@@ -3,7 +3,7 @@
 
 int main () {
 
-    long long result = traverse_dir(".");
+    traverse_dir(".");
 
     return 0;
 }

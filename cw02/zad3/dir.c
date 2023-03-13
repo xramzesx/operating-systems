@@ -25,13 +25,13 @@ long long traverse_dir (const char * path) {
         if (S_ISDIR(file_stats.st_mode))
             continue;
         
-        printf("%lld\t%s\n", file_stats.st_size ,dp->d_name);
+        printf("%ld\t%s\n", file_stats.st_size ,dp->d_name);
         result += file_stats.st_size;
     }
 
     closedir(dir);
 
-    printf("%lld\ttotal\n", result ,dp->d_name);
+    printf("%lld\ttotal\n", result);
 
     return result;
 }
