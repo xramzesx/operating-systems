@@ -28,7 +28,6 @@ all:
 #### COMPARE WITH TR ####
 
 test:
-	@make -s clean-all
 	@make -s all
 	
 	./main_sys.exe a A ${EX_FILE}.txt ${EX_FILE}.sys.txt > 	pomiar_zad_1.txt

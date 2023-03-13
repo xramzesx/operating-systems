@@ -7,15 +7,15 @@ static-lib:
 	ar rcs dir.a dir.o
 
 all:
-	make static-lib
+	@make -s static-lib
 	gcc -c main.c ${CFLAGS}
 	gcc main.o dir.a -o main.exe 
 
 #### TESTS ####
 
 test:
-	make clean
-	make all
+	@make -s clean
+	@make -s all
 	./main.exe
 	### COMPARE ###
 	wc --bytes *
