@@ -24,8 +24,6 @@ int process_file (
 
     printf("%ld\t%s\n", stats->st_size, path);
 
-    // total_size += stats->st_size;
-
     increase_total(stats->st_size);
 
     return 0;

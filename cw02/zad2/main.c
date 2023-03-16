@@ -35,7 +35,7 @@ int main (int argc, char **argv) {
     struct timespec lib_real_start, lib_real_end;
 
     clock_gettime(CLOCK_REALTIME, &lib_real_start);
-    if( !reverse_file(f_source, f_destination, 1024) ) {
+    if( !reverse_file(f_source, f_destination, CHUNK_SIZE) ) {
         printf("[error] process exit\n");
         return 1;
     }
