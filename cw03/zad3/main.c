@@ -4,8 +4,6 @@
 
 #include "traverse.h"
 
-#define MAX_PATTERN_SIZE 255
-
 int main (int argc, char **argv) {
 
     //// VALIDATION ////

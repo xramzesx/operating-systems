@@ -11,8 +11,21 @@ all:
 	gcc main.o traverse.a -o main.exe
 
 test:
+	@make -s clean
 	@make -s all
 	
+	make -s test-dir DIRECTORY=.
+	make -s test-dir DIRECTORY=..
+	make -s test-dir DIRECTORY=../..
+	make -s test-dir DIRECTORY=~
+	make -s test-dir DIRECTORY=/root
+	
+
+test-dir:
+	./main.exe ${DIRECTORY} \#include
+	./main.exe ${DIRECTORY} asdf
+	./main.exe ${DIRECTORY} zadanie
+
 #### UTILS ####
 
 clean:
