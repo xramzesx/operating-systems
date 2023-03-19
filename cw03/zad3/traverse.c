@@ -94,6 +94,7 @@ int traverse(
 
         if ( (filename = malloc( PATH_MAX )) == NULL ) {
             perror("unable to allocate memory for path");
+            closedir(dir);
             return -1;
         }
 
@@ -115,6 +116,7 @@ int traverse(
         }
 
         if (!S_ISDIR(file_stats.st_mode)) {
+            free(filename);
             continue;
         }
 
@@ -123,11 +125,16 @@ int traverse(
             int result = traverse(filename, pattern);
 
             free(filename);
+            closedir(dir);
 
             return result;
         }
 
+        free(filename);
+
     }
+
+    closedir(dir);
 
     while (wait(NULL) > 0);
 
