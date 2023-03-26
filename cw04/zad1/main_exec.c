@@ -30,7 +30,9 @@ int main (int argc, char **argv) {
     //// INITIALIZE SIGNAL SUPPORT ////
 
     int is_in_child = argc == 3 && strcmp("child", argv[2]) == 0;
-
+    
+    set_child_pid(!is_in_child);
+    
     if (!is_in_child) {
         setup_signal(action);
         raise(SIGUSR1);
@@ -38,18 +40,20 @@ int main (int argc, char **argv) {
         if ( action == Mask || action == Pending ) {
             show_pending_signals();
         }
-    }
 
+        set_child_pid(fork());
 
-    set_child_pid(fork());
-
-    if (get_child_pid() == 0) {
+        if (get_child_pid() == 0) {
+            execl(argv[0], argv[0] , argv[1], "child", NULL);            
+        }
+    } else {
+        
         if ( action != Pending ) {
             raise(SIGUSR1);
         } 
-
+        
         if (action == Pending || action == Mask)
-            show_pending_signals();
+            show_pending_signals();    
     }
 
     wait(NULL);
