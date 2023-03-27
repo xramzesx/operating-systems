@@ -1,0 +1,71 @@
+==[siginfo]=================
+
+[self]
+
+/////////////////////
+Signum: 10
+Signal no:      10
+Code:   -6
+PID:    20527
+UID:    1000
+User time:      0
+/////////////////////
+
+[via fork]
+
+/////////////////////
+Signum: 10
+Signal no:      10
+Code:   0
+PID:    20528
+UID:    1000
+User time:      0
+/////////////////////
+
+[via CTRL+Z or CTRL+C]
+^Z
+/////////////////////
+Signum: 20
+Signal no:      20
+Code:   128
+PID:    0
+UID:    0
+User time:      0
+/////////////////////
+
+==[nodefer]=================
+
+received[+]: 10 | d:0
+ received[+]: 10 | d:1
+  received[+]: 10 | d:2
+   received[+]: 10 | d:3
+    received[+]: 10 | d:4
+     received[+]: 10 | d:5
+     received[-]: 10 | d:5
+    received[-]: 10 | d:4
+   received[-]: 10 | d:3
+  received[-]: 10 | d:2
+ received[-]: 10 | d:1
+received[-]: 10 | d:0
+
+==[resethand]===============
+
+[double press CTRL+C]
+^CHandle (2)
+^C
+
+==[podsumowanie]============
+
+SIGINFO - daje nam szerszy dostęp do informacji o otrzymanym sygnale
+NODEFER - zmienia kolejność wykonywania sygnałów, pozwala na rekurencyjne 
+          zawołanie sygnału wewnątrz siebie
+RESETHAND - po przechwyceniu sygnału (i wykonaniu handlera), wykonuje/resetuje
+            jego domyślną czynność
+
+==[dodatkowy komentarz]=====
+
+najlepiej jest uruchamiać każdą z opcji osobno.
+
+./main.exe siginfo
+./main.exe nodefer
+./main.exe resethead

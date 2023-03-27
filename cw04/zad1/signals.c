@@ -73,7 +73,7 @@ void show_pending_signals() {
 }
 
 void setup_signal(ActionType action) {
-        struct sigaction s_action;
+    struct sigaction s_action;
     s_action.sa_flags = 0;
     
     sigset_t mask;
