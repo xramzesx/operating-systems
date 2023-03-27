@@ -21,7 +21,7 @@ int is_number(const char * str) {
 void handler_sigusr1(
     int sig
 ) {
-
+    //// PLACEHOLDER ////
 }
 
 void send_signal( 
@@ -47,9 +47,6 @@ void send_signal(
 
     sigsuspend(&sigset);
     printf("received confirm: %d\n", code);
-    // if (sigsuspend(&sigset) == -1) {
-    //     perror("")
-    // }
 }
 
 int main (int argc, char ** argv) {
@@ -90,21 +87,21 @@ int main (int argc, char ** argv) {
 
     }
 
-
+    //// PREVENT DEFAULT SIGUSR1 ////
+    
     struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    sa.sa_sigaction = &handler_sigusr1;
+    sa.sa_handler = &handler_sigusr1;
     sigaction(SIGUSR1, &sa, NULL);
+
+    //// SENDING SIGNALS ////
 
     printf("[sender] pid: %d\n", getpid());
 
-
     for (int i = 0; i < n; i++ ){ 
         send_signal(pid, SIGUSR1, commands[i]);
-
     }
-    
 
     return 0;
 }

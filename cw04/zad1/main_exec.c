@@ -41,11 +41,8 @@ int main (int argc, char **argv) {
             show_pending_signals();
         }
 
-        set_child_pid(fork());
+        execl(argv[0], argv[0] , argv[1], "child", NULL);            
 
-        if (get_child_pid() == 0) {
-            execl(argv[0], argv[0] , argv[1], "child", NULL);            
-        }
     } else {
         
         if ( action != Pending ) {

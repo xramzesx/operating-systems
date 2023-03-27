@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
+#include <stdlib.h>
 
 enum OperatingModes {
     Range = 1,
@@ -45,35 +46,35 @@ void handler_sigusr1(
     printf("Output:\n");
 
     switch (info->si_value.sival_int) {
-    case Range:
-        for (int i = 1; i <= 100; i++ ) {
-            printf("%d, ", i);
-        }
-        printf("\n");
-        fflush(stdout);
-        break;
-    case Time:
-        print_current_time();
-        break;
-    case Requests:
-        printf("Requests count: %d\n", requests_count);
-        fflush(stdout);
-        break;
-    case Interval:
-        show_time = 1;
-        printf("Show current time\n");
-        break;
-    case Exit:
-        printf("process exit\n");
-        fflush(stdout);
-        kill(info->si_pid, SIGUSR1);
-        exit(0);
-        break;
+        case Range:
+            for (int i = 1; i <= 100; i++ ) {
+                printf("%d, ", i);
+            }
+            printf("\n");
+            fflush(stdout);
+            break;
+        case Time:
+            print_current_time();
+            break;
+        case Requests:
+            printf("Requests count: %d\n", requests_count);
+            fflush(stdout);
+            break;
+        case Interval:
+            show_time = 1;
+            printf("Show current time\n");
+            break;
+        case Exit:
+            printf("process exit\n");
+            fflush(stdout);
+            kill(info->si_pid, SIGUSR1);
+            exit(0);
+            break;
 
-    default:
-        perror("invalid operating mode\n");
-        fflush(stdout);
-        break;
+        default:
+            perror("invalid operating mode\n");
+            fflush(stdout);
+            break;
     }
     
     // usleep(10000);
