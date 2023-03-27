@@ -14,21 +14,18 @@ SIGUSR1 is NOT pending in child
 =[exec]==========
 
 ignore
-handler
-handle SIGUSR1 (10) at parent
 mask
 SIGUSR1 is pending in parent
-SIGUSR1 is pending in parent
+SIGUSR1 is pending in child
 pending
 SIGUSR1 is pending in parent
-SIGUSR1 is NOT pending in parent
+SIGUSR1 is pending in child
 
 =[wnioski]=======
 
-oba polecenia działają podobnie. Po wykonaniu funkcji 
-exec maska obsługi sygnałów i nieobsłużone sygnały są 
-takie same jak w procesie, w którym wywołano funkcję 
-exec. Jedyna różnica występuje jedynie w przypadku
-wariantu handler, ponieważ jak możemy zauważyć
-funkcja do przechwytywania sygnału nie jest ponownie
-montowana w procesie potomnym
+Oba polecenia dają nam podobne rezultaty. Różnią się
+jednak w przypadku opcji pending -> wynika to z tego,
+że gdy nie tworzymy procesu potomnego, a bezpośrednio
+nadpisujemy nasz program nowym programem (za pomocą exec)
+to proces nie zmienia swojego pid, przez co wszystkie
+czekające sygnały dalej pozostają w kolejce.

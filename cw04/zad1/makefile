@@ -28,7 +28,6 @@ test:
 	@echo "\n=[exec]==========\n"
 
 	@./main_exec.exe ignore
-	@./main_exec.exe handler
 	@./main_exec.exe mask
 	@./main_exec.exe pending
 
