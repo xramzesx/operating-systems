@@ -133,6 +133,12 @@ int cmp_mail_sender( const void * va, const void * vb) {
 int show_mail( char * option ) {
 
     FILE * mail_source = popen("mail -p", "r");
+    
+    if (mail_source == NULL) {
+        perror("failed to open read pipe");
+        return 2;
+    }
+
     char line[BUFSIZ];
 
     Node * mail_nodes = init_node();
@@ -143,7 +149,8 @@ int show_mail( char * option ) {
     while ( fgets(line, BUFSIZ, mail_source) ) {
 
         if (strncmp(line, "Subject:", 8) == 0 && strlen( node->mail->subject ) == 0) {
-            sscanf(line, "Subject: %s\n", node->mail->subject);
+            strcpy(node->mail->subject, &line[8]);
+            node->mail->subject[strlen(node->mail->subject) - 1] = 0;
             counter++;
         }
 
@@ -167,7 +174,8 @@ int show_mail( char * option ) {
         }
 
         if (strncmp(line, "From:", 5) == 0) {
-            sscanf(line, "From: %s\n", node->mail->sender);
+            strcpy(node->mail->sender, &line[5]);
+            node->mail->sender[strlen(node->mail->sender) - 1] = 0;
 
             node-> next = init_node();
             node = node->next;
