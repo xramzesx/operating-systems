@@ -2,9 +2,16 @@ CFLAGS=-Wall
 
 #### COMPILATION ####
 
+static-lib:
+	gcc -c mail.c $(CCFLAG)
+	ar rcs mail.a mail.o
+
 all:
-	gcc -c main.c ${CFLAGS}
-	gcc main.o -o main.exe
+	@make -s static-lib
+	gcc -c main.c $(CCFLAG)
+	gcc main.o mail.a -o main.exe $(CCFLAG)
+
+
 
 test:
 	@make -s all
