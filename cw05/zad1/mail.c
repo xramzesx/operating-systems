@@ -229,7 +229,41 @@ int show_mail( char * option ) {
     return 0;
 }
 
-int send_mail( char * email, char * title, char * content ) {
+int send_mail( 
+    char * email, 
+    char * title, 
+    char * content 
+) {
 
+    char * base_command = "mail -s";
+
+    size_t command_len =         
+        strlen(base_command) + 
+        strlen(" \"") +
+        strlen(title) + 
+        strlen("\" ") + 
+        strlen(email) + 
+        1;
+    
+    char * command = calloc( 
+        command_len, 
+        sizeof(char)
+    );
+
+    sprintf(command, "%s \"%s\" %s", base_command, title, email);
+
+
+    printf("%s\n", command);
+
+    FILE * mail_pipe = popen(command, "w");
+
+    if ( mail_pipe == NULL ) {
+        perror("failed to open write pipe");
+        return 3;
+    }
+
+    fputs(content, mail_pipe);
+
+    pclose(mail_pipe);
     return 0;
 }
