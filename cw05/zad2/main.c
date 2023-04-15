@@ -1,11 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
+#include <sys/times.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #define RANGE_START 0
 #define RANGE_END   1
+
+#define NS_SCALE 1000000000
+
+//// FUNCTION & INTEGRATION ////
 
 double f( double x ) {
     return 4 / (x * x + 1);
@@ -21,6 +27,17 @@ double integral(
         result += f(x) * width;
     return result;
 }
+
+///// UTILS /////
+
+double get_time( struct timespec * ts_start, struct timespec * ts_end) {
+    return 
+        (double)(ts_end->tv_sec - ts_start->tv_sec) + 
+        (double)(ts_end->tv_nsec - ts_start->tv_nsec) / 
+        NS_SCALE;
+}
+
+///// MAIN /////
 
 int main (int argc, char ** argv) {
 
@@ -42,6 +59,11 @@ int main (int argc, char ** argv) {
     int forks_count = atoi(argv[2]);
 
     int * pipes = calloc(forks_count, sizeof(int));
+
+
+    struct timespec lib_real_start, lib_real_end;
+
+    clock_gettime(CLOCK_REALTIME, &lib_real_start);
 
     for (int i = 0; i < forks_count; i++) {
         int fd[2];
@@ -102,7 +124,18 @@ int main (int argc, char ** argv) {
         result += partial_result;
     }
 
-    printf("Result: %lf\n", result);
+    clock_gettime(CLOCK_REALTIME, &lib_real_end);
+
+    printf(
+        "%.9lf\t%d\t%.6lf\t%lf\n", 
+        width, 
+        forks_count, 
+        get_time(
+            &lib_real_start, 
+            &lib_real_end
+        ), 
+        result
+    );
 
     free(pipes);
     return 0;
