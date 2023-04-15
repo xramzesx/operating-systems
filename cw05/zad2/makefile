@@ -8,12 +8,24 @@ all:
 
 test:
 	@make -s all
-	./main.exe 0.000000001 1
-	./main.exe 0.000000001 5
-	./main.exe 0.000000001 10
-	./main.exe 0.000000001 20
-	./main.exe 0.000000001 50
-	./main.exe 0.000000001 101
+	@make -s test-single ACCURACY=0.001
+	@make -s test-single ACCURACY=0.00001
+	@make -s test-single ACCURACY=0.0000001
+	@make -s test-single ACCURACY=0.000000001
+
+test-single:
+	@echo "Width\tForks\tTime\tResult"
+	@./main.exe ${ACCURACY} 1
+	@./main.exe ${ACCURACY} 5
+	@./main.exe ${ACCURACY} 10
+	@./main.exe ${ACCURACY} 20
+	@./main.exe ${ACCURACY} 50
+	@./main.exe ${ACCURACY} 101
+
+test-save:
+	@echo Test started
+	@make -s test > raport.txt
+	@echo Test finished
 
 #### UTILS ####
 
