@@ -9,30 +9,32 @@
 
 //// CACHE ////
 
-key_t server_key = -1;
-int server_msgid = -1;
+mqd_t server_queue;
 
-int client_msgids[MAX_CONNECTED_CLIENTS];
+mqd_t client_queues[MAX_CONNECTED_CLIENTS];
 
 int is_connected_client(msg_buffer * message ){
     return 
         message->client_id >= 0 && 
         message->client_id < MAX_CONNECTED_CLIENTS &&
-        client_msgids[message->client_id] != -1;
+        client_queues[message->client_id] != NULL;
 }
 
 int check_connection(msg_buffer * message) {
     if (is_connected_client(message))
         return 1;
 
+    char content[MAX_MESSAGE_SIZE] = "Connection failed: client id not found";
+
     msg_buffer response = create_message(
         message->command, 
-        "Connection failed: client id not found", 
-        server_msgid, 
+        content,  
+        message->mq_name,
         message->client_id, 
         -1
     );
-    send_message(&response, message->client_msgid);
+
+    send_message(&response, mq_open(message->mq_name, O_RDWR));
 
     return 0;
 }
@@ -43,34 +45,39 @@ void handle_init( msg_buffer * message ) {
     int client_id = -1;
 
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
-        if (client_msgids[id] == -1) {
+        if (client_queues[id] == NULL) {
             client_id = id;
-            client_msgids[client_id] = message->client_msgid;
+            client_queues[client_id] = mq_open(message->mq_name, O_RDWR);
             break;
         }
     }
 
     if (client_id == -1) {
+        char content[MAX_MESSAGE_SIZE] = "Connection failed: too many connected clients";
+
         msg_buffer response = create_message(
             E_INIT, 
-            "Connection failed: too many connected clients", 
-            server_msgid, 
+            content,  
+            message->mq_name,
             client_id, 
             -1
         );
-        send_message(&response, message->client_msgid);
+
+        send_message(&response, mq_open(message->mq_name, O_RDWR));
         return;
     }
 
+    char content[MAX_MESSAGE_SIZE] = "Connection success";
+
     msg_buffer response = create_message(
         E_INIT, 
-        "Connection success", 
-        server_msgid, 
+        content,
+        message->mq_name, 
         client_id, 
         -1
     );
 
-    send_message(&response, message->client_msgid);
+    send_message(&response, client_queues[client_id]);
 }
 
 void handle_list( msg_buffer * message ){
@@ -79,7 +86,7 @@ void handle_list( msg_buffer * message ){
     char buffer[MAX_MESSAGE_SIZE];
 
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
-        if (client_msgids[id] != -1) {
+        if (client_queues[id] != NULL) {
             char tmp_buff[MAX_BUFFER_SIZE];
             sprintf(tmp_buff, 
                 id == message->client_id 
@@ -92,22 +99,28 @@ void handle_list( msg_buffer * message ){
     msg_buffer response = create_message(
         E_LIST, 
         buffer, 
-        client_msgids[message->client_id], 
+        message->mq_name,
         message->client_id, 
         -1
     );
 
-    send_message(&response, client_msgids[message->client_id]);
+    send_message(&response, client_queues[message->client_id]);
 }
 
 void handle_2all( msg_buffer * message ){
     if (!check_connection(message)) return;
     
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
-        if (client_msgids[id] != -1 && id != message->client_id) {
-            printf("Send to %d %d\n", id, client_msgids[id]);
-            msg_buffer tmp_msg = create_message(E_2ALL, message->content, client_msgids[id], id, message->client_id);
-            send_message(&tmp_msg, client_msgids[id]);
+        if (client_queues[id] != NULL && id != message->client_id) {
+            printf("Send to %d\n", id);
+            msg_buffer tmp_msg = create_message(
+                E_2ALL, 
+                message->content, 
+                message->mq_name,
+                id, 
+                message->client_id
+            );
+            send_message(&tmp_msg, client_queues[id]);
         }
     }
 }
@@ -118,10 +131,14 @@ void handle_2one( msg_buffer * message ){
     if (message->other_id < 0 || message->other_id >= MAX_BUFFER_SIZE)
         return;
 
-    if (client_msgids[message->other_id] == -1)
+    if (client_queues[message->other_id] == NULL)
         return;
 
-    send_message(message, client_msgids[message->other_id]);
+    int other_id = message->other_id;
+    message->other_id = message->client_id;
+    message->client_id = other_id;
+
+    send_message( message, client_queues[other_id] );
 }
 
 void handle_stop( msg_buffer * message ){
@@ -129,7 +146,19 @@ void handle_stop( msg_buffer * message ){
         return;
     }
 
-    client_msgids[message->client_id] = -1;
+    char content[MAX_MESSAGE_SIZE] = "Stopped";
+    msg_buffer response = create_message(
+        E_STOP, 
+        content, 
+        message->mq_name, 
+        message->client_id, 
+        -1
+    );
+    send_message(&response, client_queues[message->client_id] );
+    
+    mq_close(client_queues[message->client_id]);
+    
+    client_queues[message->client_id] = NULL;
 }
 
 
@@ -179,13 +208,26 @@ void handle_message( msg_buffer * message ) {
 
 void handle_exit() {
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
-        if ( client_msgids[id] == -1)
+        if ( client_queues[id] == NULL)
             continue;
 
-        msg_buffer message = create_message(E_STOP, "Server stopped", client_msgids[id], id, -1);
-        send_message(&message, client_msgids[id]);
+        char content[MAX_MESSAGE_SIZE] = "Server stopped";
+
+        msg_buffer message = create_message(
+            E_STOP, 
+            content, 
+            SERVER_QUEUE_NAME, 
+            id, 
+            -1
+        );
+
+        send_message(&message, client_queues[id]);
+        mq_close(client_queues[id]);
     }
-    msgctl(server_msgid, IPC_RMID, NULL);
+
+    mq_close(server_queue);
+    mq_unlink(SERVER_QUEUE_NAME);
+        
     printf("server exit\n");
 }
 
@@ -205,24 +247,26 @@ int main () {
 
     //// CREATE MESSAGE QUEUE ////
 
-    server_key   = ftok(PROJECT_PATHNAME, PROJECT_ID);
-    server_msgid = msgget(server_key, 0666 | IPC_CREAT);
+    server_queue = create_queue(SERVER_QUEUE_NAME);
 
-    for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++)
-        client_msgids[id] = -1;
+    //// SETUP CLIENT QUEUES ////
+
+    for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
+        client_queues[id] = NULL;
+    }
 
     while (1) {
         msg_buffer message_buffer;
         
-        if ( 0 <= msgrcv(
-            server_msgid, 
-            &message_buffer, 
-            sizeof(msg_buffer), 
-            PRIORITY_MSGTYP, 
-            0 
+        if ( 0 <= mq_receive(
+            server_queue, 
+            (char *) &message_buffer, 
+            MAX_MESSAGE_BUFFER_SIZE, 
+            NULL
         )) {
             handle_message(&message_buffer);
         }
+
         sleep(1);
     }
     

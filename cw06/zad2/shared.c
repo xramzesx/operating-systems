@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <sys/msg.h>
 #include <sys/ipc.h>
+#include <mqueue.h>
 
 #include "shared.h"
 
@@ -13,10 +14,14 @@ void set_content( msg_buffer * message, char content[MAX_MESSAGE_SIZE]) {
     strcpy(message->content, content);
 }
 
+void set_mq_name( msg_buffer * message, char mq_name[MAX_QUEUE_NAME_SIZE]) {
+    strcpy(message->mq_name, mq_name);
+}
+
 msg_buffer create_message(
     command cmd, 
     char content[MAX_MESSAGE_SIZE],
-    int client_msgid,
+    char mq_name[MAX_QUEUE_NAME_SIZE],
     int client_id,
     int other_id
 ) {
@@ -24,10 +29,12 @@ msg_buffer create_message(
     msg_buffer buffer;
 
     set_content(&buffer, content);
-    buffer.command = cmd;
-    buffer.client_msgid = client_msgid;
+    set_mq_name(&buffer, mq_name);
+
     buffer.client_id = client_id;
-    buffer.other_id = cmd == E_2ONE ? other_id : -1;
+    buffer.command = cmd;
+    buffer.client_id = client_id;
+    buffer.other_id = other_id;
 
     time_t current_time = time(NULL);
     buffer.time = *localtime(&current_time);
@@ -50,8 +57,15 @@ msg_buffer create_message(
     return buffer;
 }
 
-void send_message( msg_buffer * message, int msgid ) {
-    msgsnd(msgid, message, sizeof(*message), 0);
+mqd_t create_queue(const char * name) {
+    struct mq_attr attributes;
+    attributes.mq_maxmsg = MAX_CONNECTED_CLIENTS;
+    attributes.mq_msgsize = MAX_MESSAGE_BUFFER_SIZE;
+    return mq_open(name, O_RDWR | O_CREAT, 0666, &attributes);
+}
+
+void send_message( msg_buffer * message, mqd_t message_queue ) {
+    mq_send(message_queue, (char *) message, MAX_MESSAGE_BUFFER_SIZE, message->mtype);
 }
 
 //// UTILS ////

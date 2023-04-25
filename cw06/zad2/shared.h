@@ -1,13 +1,18 @@
 #include <stdlib.h>
 #include <time.h>
+#include <mqueue.h>
 
 //// GENERAL ////
 
-#define MAX_MESSAGE_SIZE      512
-#define MAX_CONNECTED_CLIENTS 5
-#define MAX_BUFFER_SIZE       (2 * MAX_MESSAGE_SIZE)
-//// FTOK ////
+#define MAX_MESSAGE_SIZE        512
+#define MAX_MESSAGE_BUFFER_SIZE sizeof(msg_buffer)
+#define MAX_CONNECTED_CLIENTS   5
+#define MAX_BUFFER_SIZE         (2 * MAX_MESSAGE_SIZE)
+#define MAX_QUEUE_NAME_SIZE     50
 
+//// QUEUE CONFIG ////
+
+#define SERVER_QUEUE_NAME     "/posix-server-queue"
 #define PROJECT_PATHNAME getenv("HOME")
 #define PROJECT_ID       1337
 
@@ -39,8 +44,8 @@ typedef void (*sighandler_t)(int);
 typedef struct {
     long mtype;
     char content[MAX_MESSAGE_SIZE];
+    char mq_name[MAX_QUEUE_NAME_SIZE];
     command command;
-    key_t client_msgid;
     int client_id;
     int other_id;
     struct tm time;
@@ -54,17 +59,24 @@ void set_content(
     char content[MAX_MESSAGE_SIZE]
 );
 
+void set_mq_name( 
+    msg_buffer * message, 
+    char queue_name[MAX_QUEUE_NAME_SIZE]
+);
+
 msg_buffer create_message(
     command cmd, 
     char content[MAX_MESSAGE_SIZE],
-    int client_msgid,
+    char mq_name[MAX_QUEUE_NAME_SIZE],
     int client_id,
     int other_id
 );
 
+mqd_t create_queue(const char * name);
+
 void send_message( 
     msg_buffer * message, 
-    int msgid 
+    mqd_t message_queue 
 );
 
 //// UTILS ////

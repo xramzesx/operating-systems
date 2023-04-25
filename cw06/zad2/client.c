@@ -10,26 +10,25 @@
 
 int client_id = -1;
 
-key_t server_key = -1;
-key_t client_key = -1;
+mqd_t server_queue;
+mqd_t client_queue;
 
-int server_msgid = -1;
-int client_msgid = -1;
-
+char client_queue_name[MAX_QUEUE_NAME_SIZE];
+int  server_closed = 0;
 
 msg_buffer c_create_message(command cmd, char content[MAX_MESSAGE_SIZE]) {
-    return create_message(cmd, content, client_msgid, client_id, -1);
+    return create_message(cmd, content, client_queue_name, client_id, -1);
 }
 
 void c_send_message( msg_buffer * message ) {
-    send_message( message, server_msgid );
+    send_message( message, server_queue );
 }
 
 void handle_server_response() {
     msg_buffer * message = calloc(1, sizeof(msg_buffer));
 
-    msgrcv(client_msgid, message, sizeof(*message), PRIORITY_MSGTYP, 0);
-
+    mq_receive(client_queue, (char *) message, MAX_MESSAGE_BUFFER_SIZE, NULL);
+    
     switch (message->command) {
         case E_2ONE:
             printf(
@@ -39,12 +38,13 @@ void handle_server_response() {
                 message->time.tm_sec
             );
         case E_2ALL:
-            printf("from: %d:\n", message->client_id);
+            printf("from: %d:\n", message->other_id);
         case E_LIST:
             printf("%s\n", message->content);
             break;
         case E_STOP:
             free(message);
+            server_closed = 1;
             exit(0);
             break;
         default:
@@ -55,14 +55,13 @@ void handle_server_response() {
 }
 
 void check_server_response() {
-    struct msqid_ds msqid_stat;
-    msgctl(client_msgid, IPC_STAT,&msqid_stat);
+    struct mq_attr attributes;
+    
+    mq_getattr( client_queue, &attributes );
 
-    printf("remaining messages: %ld\n", msqid_stat.msg_qnum);
-
-    while (msqid_stat.msg_qnum > 0) {
+    while (attributes.mq_curmsgs > 0) {
         handle_server_response();
-        msgctl(client_msgid, IPC_STAT,&msqid_stat);
+        mq_getattr( client_queue, &attributes );
     }
 }
 
@@ -70,9 +69,14 @@ void check_server_response() {
 
 void handle_exit() {
     msg_buffer message = c_create_message(E_STOP, "stop");
-    c_send_message(&message);
-    
-    msgctl(client_msgid, IPC_RMID, NULL);
+    if (server_closed == 0) {
+        c_send_message(&message);
+        mq_receive(client_queue, (char *) &message, MAX_MESSAGE_BUFFER_SIZE, NULL);
+    }
+
+    mq_close(client_queue);
+    mq_unlink(client_queue_name);
+
     printf("client exit\n");
 }
 
@@ -93,25 +97,20 @@ int main () {
 
     //// SETUP MESSAGE QUEUE ////
 
-    server_key = ftok(PROJECT_PATHNAME, PROJECT_ID);
-    server_msgid = msgget(server_key, 0666);
 
-    client_key = ftok(PROJECT_PATHNAME, rand() % PROJECT_ID + 1);
-    client_msgid = msgget(client_key, 0666 | IPC_CREAT);
+    sprintf(client_queue_name, "/posix-client-%d", getpid());
 
-    printf("[%d, %d]\n", server_msgid, client_msgid);
+    server_queue = mq_open(SERVER_QUEUE_NAME, O_RDWR);
+    client_queue = create_queue(client_queue_name);
 
-    if (server_msgid == -1) {
-        printf("This server is turned off\n");
-        return 0;
-    }
 
     //// SEND INIT COMMAND ////
 
-    msg_buffer message_buffer = c_create_message(E_INIT, "init");
+    msg_buffer message_buffer = c_create_message(E_INIT, client_queue_name);
     c_send_message(&message_buffer);
 
-    msgrcv( client_msgid, &message_buffer, sizeof(message_buffer), 0, 0 );
+    mq_receive(client_queue, (char *) &message_buffer, MAX_MESSAGE_BUFFER_SIZE, NULL);
+
     client_id = message_buffer.client_id;
 
     if (client_id == -1) {
@@ -140,7 +139,7 @@ int main () {
         char *  cmd_str = ptr;
         command cmd = string_to_command(cmd_str);
 
-        msg_buffer message = c_create_message(cmd, "tmp");
+        msg_buffer message = c_create_message(cmd, "");
 
         switch (cmd) {
             case E_2ONE:;
@@ -162,19 +161,16 @@ int main () {
                     continue;
                 }
                 
-                set_content(&message, ptr );
-
+                set_content(&message, ptr);
                 c_send_message(&message);
                 break;
 
             case E_LIST:
                 c_send_message(&message);
-
                 handle_server_response();
                 break;
 
             case E_STOP:
-                // c_send_message(&message);
                 repl_active = 0;
                 break;
         
