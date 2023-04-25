@@ -6,7 +6,8 @@
 #define MAX_MESSAGE_SIZE      512
 #define MAX_CONNECTED_CLIENTS 5
 #define MAX_BUFFER_SIZE       (2 * MAX_MESSAGE_SIZE)
-//// FTOK ////
+
+//// QUEUE CONFIG ////
 
 #define PROJECT_PATHNAME getenv("HOME")
 #define PROJECT_ID       1337
