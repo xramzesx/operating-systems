@@ -4,8 +4,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 
 #include "common.h"
+#include "linkedlist.h"
 
 //// EXEC ////
 
@@ -39,7 +41,15 @@ void create_shared_memory();
 void close_semaphores();
 void close_shared_memory();
 
+//// SIGNALS ///
+
+LinkedList * barbers_list;
+LinkedList * clients_list;
+
 //// MAIN ////
+
+void handle_exit();
+void handle_sigint();
 
 int main (int argc, char ** argv) {
 
@@ -64,7 +74,23 @@ int main (int argc, char ** argv) {
     if (argc == 5)
         num_clients = atoi(argv[4]); // C
 
+    //// SIGNALS ///
+
+    barbers_list = init_linked_list();
+    clients_list = init_linked_list();
+
+    struct sigaction sa;
+    sa.sa_flags = 0;
+    sa.sa_handler = handle_sigint;
+
+    sigaction(SIGINT, &sa, NULL);
+
+    //// EXIT ///
+
+    atexit(handle_exit);
+
     //// OPEN IPC ////
+
     printf("[initializing ipc]\n");
 
     unlink_semaphores();
@@ -78,17 +104,38 @@ int main (int argc, char ** argv) {
     //// SPAWN BARBERS ////
 
     for (int i = 0; i < num_barbers; i++) {
-        if (fork() == 0) {
-            execl(EXEC_BARBER, EXEC_BARBER, NULL);
+        int pid = fork();
+        
+        switch (pid) {
+            case -1:
+                exit(2);
+                break;
+            case 0:
+                execl(EXEC_BARBER, EXEC_BARBER, NULL);
+                break;        
+            default:
+                list_append(barbers_list, pid);
+                break;
         }
+
     }
 
     //// SPAWN CLIENTS ////
 
     for (int i = 0; i < num_clients || argc == 4; i++) {
-        if (fork() == 0) {
-            execl(EXEC_CLIENT, EXEC_CLIENT, NULL);
+        int pid = fork();    
+        switch (pid) {
+            case -1:
+                exit(2);
+                break;
+            case 0:
+                execl(EXEC_CLIENT, EXEC_CLIENT, NULL);
+                break;        
+            default:
+                list_append(barbers_list, pid);
+                break;
         }
+
         usleep(rand() % 500000 + 100000);
     }
 
@@ -167,4 +214,17 @@ void close_semaphores() {
 void close_shared_memory() {
     detach_shared_queue(shared_queue);
     detach_shared_queue(shared_chairs);
+}
+
+//// HANDLE EXIT ///
+
+void handle_exit() {
+    destroy_linked_list(barbers_list);
+    destroy_linked_list(clients_list);
+}
+
+void handle_sigint(int code) {
+    printf("\nTerminated\n");
+    fflush(stdout);
+    exit(0);
 }
