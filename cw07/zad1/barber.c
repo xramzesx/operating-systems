@@ -7,11 +7,14 @@
 
 #include "common.h"
 
+#define BARBER_ID getpid()
+
 Semaphore sem_barber;
 Semaphore sem_chairs;
 Semaphore sem_queue;
 
-SharedStruct * shared;
+SharedStruct * shared_queue;
+SharedStruct * shared_chairs;
 
 int get_hairstyle();
 
@@ -20,11 +23,12 @@ int main (int argc, char ** argv) {
     sem_chairs = open_semaphore(SEM_NAME_CHAIR);
     sem_queue  = open_semaphore(SEM_NAME_QUEUE);
 
-    shared = attach_shared_queue(SHARED_NAME_QUEUE);
+    shared_queue = attach_shared_queue(SHARED_NAME_QUEUE);
+    shared_chairs = attach_shared_queue(SHARED_NAME_CHAIRS);
 
     post_semaphore(sem_barber);
     printf( 
-        "[barber] with id %d join the game as: %d \n",
+        "+ [barber] with id %d join the game as: %d \n",
         getpid(), 
         get_semaphore_value(sem_barber) 
     );
@@ -50,7 +54,7 @@ int main (int argc, char ** argv) {
             continue;
         }
 
-        printf("Barber %d made hairstyle no. %d %d\n", getpid(), hairstyle, shared->size);
+        printf("> [barber] %d made hairstyle no. %d\n", getpid(), hairstyle);
         fflush(stdout);
 
         /// Free chair
@@ -60,9 +64,10 @@ int main (int argc, char ** argv) {
         usleep(500000);
     }
     
-    detach_shared_queue(shared);
+    detach_shared_queue(shared_queue);
+    detach_shared_queue(shared_chairs);
 
-    printf("[barber] with id %d already left \n", getpid());
+    printf("- [barber] with id %d already left \n", getpid());
 
     return 0;
 }
@@ -70,8 +75,15 @@ int main (int argc, char ** argv) {
 int get_hairstyle() {
     wait_semaphore(sem_queue);
 
+    while (!queue_is_empty(shared_queue) && !queue_is_full(shared_chairs)) {
+        queue_push(
+            shared_chairs, 
+            queue_pop(shared_queue)
+        );
+    }
+
     /// get hairstyle
-    int hairstyle = queue_pop(shared);
+    int hairstyle = queue_pop(shared_chairs);
     
     /// Unlock shared memory
     post_semaphore(sem_queue);

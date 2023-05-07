@@ -26,6 +26,7 @@ Semaphore sem_chair;
 Semaphore sem_queue;
 
 SharedStruct * shared_queue;
+SharedStruct * shared_chairs;
 
 //// OPEN & CLOSE IPC HEADERS ////
 
@@ -65,10 +66,6 @@ int main (int argc, char ** argv) {
 
     create_semaphores();
     create_shared_memory();
-
-    //// SETUP SHARED QUEUE ////
-
-    
 
     //// SPAWN BARBERS ////
 
@@ -123,7 +120,10 @@ void create_shared_memory() {
     shared_queue = attach_shared_queue(SHARED_NAME_QUEUE);
     shared_queue->size = 0;
     shared_queue->capacity = num_queue;
-    // shared_queue->queue = calloc(num_queue, sizeof(int));
+
+    shared_chairs = attach_shared_queue(SHARED_NAME_CHAIRS);
+    shared_chairs->size = 0;
+    shared_chairs->capacity = num_chairs;
 }
 
 //// CLOSE IPC BODY ////
@@ -135,4 +135,5 @@ void close_semaphores() {
 
 void close_shared_memory() {
     detach_shared_queue(shared_queue);
+    detach_shared_queue(shared_chairs);
 }

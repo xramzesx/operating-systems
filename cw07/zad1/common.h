@@ -17,6 +17,7 @@
 
 #define SHARED_MAX_QUEUE_SIZE 128
 #define SHARED_NAME_QUEUE     "3"
+#define SHARED_NAME_CHAIRS    "4"
 
 typedef struct {
     int capacity;
