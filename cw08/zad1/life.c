@@ -7,8 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-int main()
-{
+int main() {
 	srand(time(NULL));
 	setlocale(LC_CTYPE, "");
 	initscr(); // Start curses mode
@@ -19,8 +18,7 @@ int main()
 
 	init_grid(foreground);
 
-	while (true)
-	{
+	while (true) {
 		draw_grid(foreground);
 		usleep(500 * 1000);
 
