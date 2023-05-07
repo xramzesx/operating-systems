@@ -57,8 +57,10 @@ void unlink_semaphore(const char * name) {
     Semaphore smid = semget(key, 0, 0);
 
     if ( smid == -1 ) {
-        fprintf(stderr, "Failed to get semaphore '%s': ", name);
-        perror("");
+        /// for our usage, this part is only 
+        /// informing part, so we could skip it
+        // fprintf(stderr, "Semaphore '%s' does not exist : ", name);
+        // perror("");
         return;
     }
 
@@ -110,17 +112,19 @@ static int get_shared_memory_id( const char * name, int size ) {
 }
 
 SharedStruct * attach_shared_queue( const char * name ){
-    Semaphore shmid = get_shared_memory_id(name, SHARED_SIZE);
+    int shmid = get_shared_memory_id(name, SHARED_SIZE);
     
     if (shmid == -1) {
-        fprintf(stderr, "No identifier for file : '%s'\n", name);
+        fprintf(stderr, "No identifier for file : '%s' :", name);
+        perror("");
         return NULL;
     }
     
     SharedStruct * shared = shmat(shmid, NULL, 0);
 
     if ( shared == (SharedStruct *)(-1)) {
-        fprintf(stderr, "Failed to load shared memory block with id %d\n", shmid);
+        fprintf(stderr, "Failed to load shared memory block with id %d :", shmid);
+        perror("");
         return NULL;
     }
 
@@ -131,12 +135,28 @@ bool detach_shared_queue( SharedStruct * shared ) {
     return (shmdt(shared) != -1);
 }
 
+bool remove_shared_queue( const char * name ) {
+    int shmid = get_shared_memory_id(name, SHARED_SIZE);
+
+    if (shmid == -1) {
+        fprintf(stderr, "No identifier for file : '%s' :", name);
+        perror("");
+        return false;
+    }
+
+    return (shmctl(shmid, IPC_RMID, NULL) != -1);
+}
 
 //// QUEUE METHODS ////
+
+bool queue_is_error(SharedStruct * shared) {
+    return shared == NULL;
+}
 
 bool queue_is_full(SharedStruct * shared) {
     return shared->size == shared->capacity;
 }
+
 bool queue_is_empty(SharedStruct * shared) {
     return shared->size == 0;
 }

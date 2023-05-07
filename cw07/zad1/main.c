@@ -30,6 +30,9 @@ SharedStruct * shared_chairs;
 
 //// OPEN & CLOSE IPC HEADERS ////
 
+void unlink_semaphores();
+void unlink_shared_memory();
+
 void create_semaphores();
 void create_shared_memory();
 
@@ -39,7 +42,6 @@ void close_shared_memory();
 //// MAIN ////
 
 int main (int argc, char ** argv) {
-    printf("[start]\n\n");
 
     srand(time(NULL));
 
@@ -63,9 +65,15 @@ int main (int argc, char ** argv) {
         num_clients = atoi(argv[4]); // C
 
     //// OPEN IPC ////
+    printf("[initializing ipc]\n");
+
+    unlink_semaphores();
+    unlink_shared_memory();
 
     create_semaphores();
     create_shared_memory();
+
+    printf("[start]\n\n");
 
     //// SPAWN BARBERS ////
 
@@ -92,10 +100,15 @@ int main (int argc, char ** argv) {
         printf("[%d]: %d\n", i, shared_queue->queue[i]);
     }
 
+    printf("\n[cleaning ipc]\n");
+
     //// CLOSE IPC ///
 
     close_semaphores();
     close_shared_memory();
+
+    unlink_semaphores();
+    unlink_shared_memory();
 
     printf("\n[finish]\n");
 
@@ -109,6 +122,11 @@ void unlink_semaphores() {
     unlink_semaphore(SEM_NAME_QUEUE);
 }
 
+void unlink_shared_memory(){
+    remove_shared_queue(SHARED_NAME_QUEUE);
+    remove_shared_queue(SHARED_NAME_CHAIRS);
+}
+
 void create_semaphores() {
     sem_barber = create_semaphore(SEM_NAME_BARBER, 1, 0);
     sem_chair  = create_semaphore(SEM_NAME_CHAIR, 1, num_chairs );
@@ -117,11 +135,24 @@ void create_semaphores() {
 }
 
 void create_shared_memory() {
+    //// SHARED MEMORY ////
+
     shared_queue = attach_shared_queue(SHARED_NAME_QUEUE);
+    
+    if (queue_is_error(shared_queue)) {
+        exit(1);
+    }
     shared_queue->size = 0;
     shared_queue->capacity = num_queue;
 
+    //// SHARED CHAIRS ////
+
     shared_chairs = attach_shared_queue(SHARED_NAME_CHAIRS);
+
+    if (queue_is_error(shared_chairs)) {
+        exit(1);
+    }
+
     shared_chairs->size = 0;
     shared_chairs->capacity = num_chairs;
 }

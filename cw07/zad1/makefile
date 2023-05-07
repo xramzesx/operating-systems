@@ -28,9 +28,5 @@ all:
 
 #### UTILS ####
 
-tmp:
-	gcc -c reader.tmp.c -Wall &&  gcc reader.tmp.o -o reader.tmp.exe 
-	gcc -c writer.tmp.c -Wall &&  gcc writer.tmp.o -o writer.tmp.exe 
-	
 clean:
 	rm -f *.o *.so *.exe *.a 

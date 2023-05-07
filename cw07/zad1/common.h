@@ -25,7 +25,7 @@ typedef struct {
     int queue[SHARED_MAX_QUEUE_SIZE];
 } SharedStruct;
 
-#define SHARED_SIZE           sizeof(SharedStruct)
+#define SHARED_SIZE sizeof(SharedStruct)
 
 //// TYPEDEFS ////
 
@@ -48,8 +48,11 @@ void wait_semaphore(Semaphore sm);
 
 SharedStruct * attach_shared_queue( const char * name );
 bool           detach_shared_queue( SharedStruct * queue );
+bool           remove_shared_queue( const char * name );
 
+bool queue_is_error(SharedStruct * shared);
 bool queue_is_full(SharedStruct * shared);
 bool queue_is_empty(SharedStruct * shared);
+
 void queue_push(SharedStruct * shared, int value);
 int  queue_pop(SharedStruct * shared);
