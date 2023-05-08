@@ -9,7 +9,7 @@ life: grid.c life.c
 test:
 	@make -s clean
 	@make -s all
-	./life.exe
+	./life.exe 13
 
 clean:
 	@rm -f life.exe

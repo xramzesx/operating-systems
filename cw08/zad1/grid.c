@@ -10,8 +10,8 @@
 
 //// CONSTANTS ////
 
-const int grid_width = 30;
-const int grid_height = 30;
+#define GRID_WIDTH  30
+#define GRID_HEIGHT 30
 
 //// GRID CONTROLS ////
 
@@ -22,7 +22,7 @@ bool is_running = true;
 
 //// THREADS ////
 
-const int threads_length = grid_height * grid_width;
+const int threads_length = GRID_HEIGHT * GRID_WIDTH;
 static pthread_t * threads;
 
 
@@ -45,7 +45,7 @@ void * routine( void * args ) {
         pause();
 
         destination_grid[
-            point->row * grid_width + point->column
+            point->row * GRID_WIDTH + point->column
         ] = is_alive(
             point->row, 
             point->column, 
@@ -68,12 +68,12 @@ void ping_threads() {
 void create_threads() {
     threads = calloc( threads_length, sizeof(pthread_t));
 
-    for (int i = 0; i < grid_height; i++ ) {
-        for (int j = 0; j < grid_width; j++ ) {            
+    for (int i = 0; i < GRID_HEIGHT; i++ ) {
+        for (int j = 0; j < GRID_WIDTH; j++ ) {            
             Point * args = calloc(1, sizeof(Point));
             args->row = i;
             args->column = j;
-            pthread_create( &threads[i * grid_width + j], NULL, routine, args );
+            pthread_create( &threads[i * GRID_WIDTH + j], NULL, routine, args );
         }
     }
 }
@@ -95,7 +95,7 @@ void stop_threads() {
 //// GAME OF LIFE ////
 
 char *create_grid() {
-    return malloc(sizeof(char) * grid_width * grid_height);
+    return malloc(sizeof(char) * GRID_WIDTH * GRID_HEIGHT);
 }
 
 void destroy_grid(char *grid) {
@@ -103,10 +103,10 @@ void destroy_grid(char *grid) {
 }
 
 void draw_grid(char *grid) {
-    for (int i = 0; i < grid_height; ++i) {
+    for (int i = 0; i < GRID_HEIGHT; ++i) {
         // Two characters for more uniform spaces (vertical vs horizontal)
-        for (int j = 0; j < grid_width; ++j) {
-            if (grid[i * grid_width + j]) {
+        for (int j = 0; j < GRID_WIDTH; ++j) {
+            if (grid[i * GRID_WIDTH + j]) {
                 mvprintw(i, j * 2, "■");
                 mvprintw(i, j * 2 + 1, " ");
             } else {
@@ -120,7 +120,7 @@ void draw_grid(char *grid) {
 }
 
 void init_grid(char *grid) {
-    for (int i = 0; i < grid_width * grid_height; ++i)
+    for (int i = 0; i < GRID_WIDTH * GRID_HEIGHT; ++i)
         grid[i] = rand() % 2 == 0;
 }
 
@@ -134,16 +134,16 @@ bool is_alive(int row, int col, char *grid) {
             }
             int r = row + i;
             int c = col + j;
-            if (r < 0 || r >= grid_height || c < 0 || c >= grid_width) {
+            if (r < 0 || r >= GRID_HEIGHT || c < 0 || c >= GRID_WIDTH) {
                 continue;
             }
-            if (grid[grid_width * r + c]) {
+            if (grid[GRID_WIDTH * r + c]) {
                 count++;
             }
         }
     }
 
-    if (grid[row * grid_width + col]) {
+    if (grid[row * GRID_WIDTH + col]) {
         return count == 2 || count == 3; 
     } else {
         return count == 3;

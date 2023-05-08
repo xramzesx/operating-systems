@@ -10,8 +10,8 @@
 
 //// CONSTANTS ////
 
-const int grid_width = 30;
-const int grid_height = 30;
+#define GRID_WIDTH  30
+#define GRID_HEIGHT 30
 
 //// GRID CONTROLS ////
 
@@ -22,7 +22,7 @@ bool is_running = true;
 
 //// THREADS ////
 
-int threads_length = grid_height * grid_width;
+int threads_length = GRID_HEIGHT * GRID_WIDTH;
 static pthread_t * threads;
 
 void signal_handler(int signo) {}
@@ -45,8 +45,8 @@ void * routine( void * args ) {
         pause();
 
         for (int iter = range->start; iter <= range->end; iter ++) {
-            int i = iter / grid_width;
-            int j = iter % grid_width;
+            int i = iter / GRID_WIDTH;
+            int j = iter % GRID_WIDTH;
 
             destination_grid[iter] = is_alive(i, j, source_grid);
         }
@@ -69,11 +69,10 @@ void create_threads(int num_threads) {
 
     threads = calloc( threads_length, sizeof(pthread_t));
 
-    int area = grid_height * grid_width;
+    int area = GRID_HEIGHT * GRID_WIDTH;
     int difference = area / threads_length;
 
     Range ** ranges = calloc( threads_length, sizeof(Range *) );
-    printf("%d \r\n", area);
 
     for (int i = 0; i < threads_length; i++) {
         ranges[i] = calloc(1, sizeof(Range));
@@ -89,8 +88,7 @@ void create_threads(int num_threads) {
 
     ranges[threads_length - 1]->end = area - 1;
 
-    for (int i = 0; i < threads_length; i++) {        
-        printf("%d | %ld | %ld\r\n", i, ranges[i]->start, ranges[i]->end);
+    for (int i = 0; i < threads_length; i++) {
         pthread_create(&threads[i], NULL, routine, ranges[i]);
     }
 
@@ -114,7 +112,7 @@ void stop_threads() {
 //// GAME OF LIFE ////
 
 char *create_grid() {
-    return malloc(sizeof(char) * grid_width * grid_height);
+    return malloc(sizeof(char) * GRID_WIDTH * GRID_HEIGHT);
 }
 
 void destroy_grid(char *grid) {
@@ -122,10 +120,10 @@ void destroy_grid(char *grid) {
 }
 
 void draw_grid(char *grid) {
-    for (int i = 0; i < grid_height; ++i) {
+    for (int i = 0; i < GRID_HEIGHT; ++i) {
         // Two characters for more uniform spaces (vertical vs horizontal)
-        for (int j = 0; j < grid_width; ++j) {
-            if (grid[i * grid_width + j]) {
+        for (int j = 0; j < GRID_WIDTH; ++j) {
+            if (grid[i * GRID_WIDTH + j]) {
                 mvprintw(i, j * 2, "■");
                 mvprintw(i, j * 2 + 1, " ");
             } else {
@@ -139,7 +137,7 @@ void draw_grid(char *grid) {
 }
 
 void init_grid(char *grid) {
-    for (int i = 0; i < grid_width * grid_height; ++i)
+    for (int i = 0; i < GRID_WIDTH * GRID_HEIGHT; ++i)
         grid[i] = rand() % 2 == 0;
 }
 
@@ -153,16 +151,16 @@ bool is_alive(int row, int col, char *grid) {
             }
             int r = row + i;
             int c = col + j;
-            if (r < 0 || r >= grid_height || c < 0 || c >= grid_width) {
+            if (r < 0 || r >= GRID_HEIGHT || c < 0 || c >= GRID_WIDTH) {
                 continue;
             }
-            if (grid[grid_width * r + c]) {
+            if (grid[GRID_WIDTH * r + c]) {
                 count++;
             }
         }
     }
 
-    if (grid[row * grid_width + col]) {
+    if (grid[row * GRID_WIDTH + col]) {
         return count == 2 || count == 3; 
     } else {
         return count == 3;
