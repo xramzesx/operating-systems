@@ -64,6 +64,7 @@ int main (int argc, char ** argv) {
         usleep(500000);
     }
     
+    wait_semaphore(sem_barber);
     detach_shared_queue(shared_queue);
     detach_shared_queue(shared_chairs);
 
