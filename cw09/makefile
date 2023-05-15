@@ -1,5 +1,6 @@
-CC = gcc
 CFLAGS = -Wall -pthread
+
+#### COMPILATION ####
 
 main:
 	@gcc -c main.c
@@ -8,10 +9,14 @@ main:
 
 all: main
 
+#### TEST ####
+
 test:
 	@make -s clean
 	@make -s all
 	@./main.exe
+
+#### UTILS ####
 
 clean:
 	rm -f *.o *.so *.exe *.a
