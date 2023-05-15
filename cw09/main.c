@@ -95,14 +95,6 @@ int main (int argc, char ** argv) {
 
     pthread_join(*santa_thread, NULL);
 
-    for (int i = 0; i < ELF_COUNT; i++) {
-        pthread_join(elf_threads[i], NULL);
-    }
-
-    for (int i = 0; i < REINDEER_COUNT; i++) {
-        pthread_join(reindeer_threads[i], NULL);
-    }
-
     //// CLEAN MEMORY ////
 
     free(elf_threads);
@@ -119,8 +111,8 @@ int main (int argc, char ** argv) {
 //// SETUP SIGNALS ////
 
 void signal_handler(int signo) {
-    pthread_mutex_unlock(&main_mutex);
-    pthread_exit(NULL);
+    // pthread_mutex_unlock(&main_mutex);
+    // pthread_exit(NULL);
 }
 
 void setup_signal() {
@@ -156,9 +148,9 @@ void * santa_routine(void * vargs) {
             
             for (int i = 0; i < WORKSHOP_QUEUE_SIZE; i++ ) {
 
-                printf("[santa] elf: %d : mikolaj rozwiazuje jego problem\n", workshop_queue[i]);
+                printf("[santa] elf: %d : Mikolaj rozwiazuje jego problem\n", workshop_queue[i]);
                 pthread_cond_signal(&workshop_queue_cond[i]);
-                pthread_cond_wait(&santa_cond, &main_mutex);
+                pthread_cond_wait(&workshop_queue_cond[i], &main_mutex);
                 sleep(rand() % 2 + 1);
                 pthread_cond_signal(&workshop_queue_cond[i]);
                 workshop_queue[i] = 0;
@@ -174,11 +166,14 @@ void * santa_routine(void * vargs) {
             sleep(rand() % 3 + 2);
             available_reindeers = 0;
             remaining_prizes--;
-            for (int i = 0; i < REINDEER_COUNT; i++)
-                pthread_cond_signal(&reindeers_cond);
+            pthread_cond_broadcast(&reindeers_cond);
         }
     }
 
+    //// STOP ALL WORK ////
+
+    for( int i = 0; i < workshop_index; i++)
+        pthread_cond_broadcast(&workshop_queue_cond[i]);
 
     for (int i = 0; i < ELF_COUNT; i++) {
         pthread_kill(elf_threads[i], SIGUSR1);
@@ -187,10 +182,31 @@ void * santa_routine(void * vargs) {
     for (int i = 0; i < REINDEER_COUNT; i++) {
         pthread_kill(reindeer_threads[i], SIGUSR1);
     }
+
+    //// LOG ////
+
     pthread_mutex_unlock(&main_mutex);
 
     printf("[santa] Mikolaj zamyka biznes, zwalnia elfy, wypuszcza renifery i wyjezdza w Bieszczady\n");
 
+    pthread_mutex_lock(&main_mutex);
+
+    for( int i = 0; i < workshop_index; i++)
+        pthread_cond_broadcast(&workshop_queue_cond[i]);
+
+    pthread_mutex_unlock(&main_mutex);
+
+    //// WAIT FOR ALL THREADS ////
+
+    for (int i = 0; i < ELF_COUNT; i++) {
+        pthread_join(elf_threads[i], NULL);
+    }
+
+    for (int i = 0; i < REINDEER_COUNT; i++) {
+        pthread_join(reindeer_threads[i], NULL);
+    }
+
+    printf("[santa] Mikolaj zamknal biznes, nie znalazl zadnych nowych sumiennych studentow\n");
 }
 
 void * reindeer_routine(void * vargs) {
@@ -225,6 +241,7 @@ void * reindeer_routine(void * vargs) {
     }
 
     printf("[reindeer] id: %d zostal do konca na wakacjach\n", args->id);
+    pthread_exit(NULL);
 }
 
 void * elf_routine ( void * vargs ) {
@@ -259,11 +276,20 @@ void * elf_routine ( void * vargs ) {
             pthread_cond_signal(&santa_cond);
             pthread_cond_wait(queue_cond, &main_mutex);
             
+            if (!remaining_prizes) {
+                pthread_mutex_unlock(&main_mutex);
+                break;
+            }
+
             printf("[elf] id: %d : Mikolaj rozwiazuje problem \n", args->id);
 
-            pthread_cond_signal(&santa_cond);
+            pthread_cond_signal(queue_cond);
             pthread_cond_wait(queue_cond, &main_mutex);
 
+            if (!remaining_prizes) {
+                pthread_mutex_unlock(&main_mutex);
+                break;
+            }
         } else {
             /// elf solve problem by himself for 1-2s///
             // sleep(rand() % 2 + 1);
@@ -275,4 +301,5 @@ void * elf_routine ( void * vargs ) {
     
     printf("[elf] id: %d spoczywa w spokoju!\n", args->id);
     fflush(stdout);
+    pthread_exit(NULL);
 }
