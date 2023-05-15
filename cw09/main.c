@@ -44,6 +44,78 @@ typedef struct {
     int id;
 } Args;
 
+/////// FUNCTIONS HEADERS ///////
+
+//// SETUP SIGNALS ////
+
+void signal_handler(int signo);
+void setup_signal();
+
+//// ROUTINES ////
+
+void * santa_routine(void * vargs);
+void * reindeer_routine(void * vargs);
+void * elf_routine ( void * vargs );
+
+/////// MAIN ///////
+
+int main (int argc, char ** argv) {
+    srand(time(NULL));
+
+    /// INIT QUEUE ///
+
+    for (int i = 0; i < WORKSHOP_QUEUE_SIZE; i++) {
+        workshop_queue[i] = 0;
+        pthread_cond_init(&workshop_queue_cond[i], NULL);
+    }
+
+    //// INIT THREADS ////
+
+    elf_threads = calloc(ELF_COUNT, sizeof(pthread_t));
+    reindeer_threads = calloc(REINDEER_COUNT, sizeof(pthread_t));
+    santa_thread = calloc(1, sizeof(pthread_t));
+
+    //// SPAWN THREADS ////
+
+    pthread_create(santa_thread, NULL, santa_routine, NULL);
+
+    for (int i = 0; i < ELF_COUNT; i++) {
+        Args * args = calloc(1, sizeof(Args));
+        args->id = i;
+        pthread_create(&elf_threads[i], NULL, elf_routine, args);
+    }
+
+    for (int i = 0; i < REINDEER_COUNT; i++) {
+        Args * args = calloc(1, sizeof(Args));
+        args->id = i;
+        pthread_create(&reindeer_threads[i], NULL, reindeer_routine, args);
+    }
+
+    //// WAIT FOR THREADS ////
+
+    pthread_join(*santa_thread, NULL);
+
+    for (int i = 0; i < ELF_COUNT; i++) {
+        pthread_join(elf_threads[i], NULL);
+    }
+
+    for (int i = 0; i < REINDEER_COUNT; i++) {
+        pthread_join(reindeer_threads[i], NULL);
+    }
+
+    //// CLEAN MEMORY ////
+
+    free(elf_threads);
+    free(reindeer_threads);
+    free(santa_thread);
+
+    pthread_mutex_destroy(&main_mutex);
+
+    return 0;
+}
+
+/////// FUNCTIONS BODY ///////
+
 //// SETUP SIGNALS ////
 
 void signal_handler(int signo) {
@@ -107,16 +179,18 @@ void * santa_routine(void * vargs) {
         }
     }
 
-    printf("[santa] Mikolaj zamyka biznes, zwalnia elfy, wypuszcza renifery i wyjezdza w Bieszczady\n");
-    pthread_mutex_unlock(&main_mutex);
 
     for (int i = 0; i < ELF_COUNT; i++) {
-        pthread_join(elf_threads[i], NULL);
+        pthread_kill(elf_threads[i], SIGUSR1);
     }
 
     for (int i = 0; i < REINDEER_COUNT; i++) {
-        pthread_join(reindeer_threads[i], NULL);
+        pthread_kill(reindeer_threads[i], SIGUSR1);
     }
+    pthread_mutex_unlock(&main_mutex);
+
+    printf("[santa] Mikolaj zamyka biznes, zwalnia elfy, wypuszcza renifery i wyjezdza w Bieszczady\n");
+
 }
 
 void * reindeer_routine(void * vargs) {
@@ -201,51 +275,4 @@ void * elf_routine ( void * vargs ) {
     
     printf("[elf] id: %d spoczywa w spokoju!\n", args->id);
     fflush(stdout);
-}
-
-int main (int argc, char ** argv) {
-    srand(time(NULL));
-
-    /// INIT QUEUE ///
-
-    for (int i = 0; i < WORKSHOP_QUEUE_SIZE; i++) {
-        workshop_queue[i] = 0;
-        pthread_cond_init(&workshop_queue_cond[i], NULL);
-    }
-
-    //// INIT THREADS ////
-
-    elf_threads = calloc(ELF_COUNT, sizeof(pthread_t));
-    reindeer_threads = calloc(REINDEER_COUNT, sizeof(pthread_t));
-    santa_thread = calloc(1, sizeof(pthread_t));
-
-    //// SPAWN THREADS ////
-
-    pthread_create(santa_thread, NULL, santa_routine, NULL);
-
-    for (int i = 0; i < ELF_COUNT; i++) {
-        Args * args = calloc(1, sizeof(Args));
-        args->id = i;
-        pthread_create(&elf_threads[i], NULL, elf_routine, args);
-    }
-
-    for (int i = 0; i < REINDEER_COUNT; i++) {
-        Args * args = calloc(1, sizeof(Args));
-        args->id = i;
-        pthread_create(&reindeer_threads[i], NULL, reindeer_routine, args);
-    }
-
-    //// WAIT FOR THREADS ////
-
-    pthread_join(*santa_thread, NULL);
-
-    //// CLEAN MEMORY ////
-
-    free(elf_threads);
-    free(reindeer_threads);
-    free(santa_thread);
-
-    pthread_mutex_destroy(&main_mutex);
-
-    return 0;
 }
