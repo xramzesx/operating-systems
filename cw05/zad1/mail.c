@@ -8,7 +8,7 @@
 
 ///// UTILS /////
 
-char * substring( 
+char * substring(
     char * str,
     int index,
     int len
@@ -263,7 +263,7 @@ int send_mail(
     }
 
     fputs(content, mail_pipe);
-
+    free(command);
     pclose(mail_pipe);
     return 0;
 }
