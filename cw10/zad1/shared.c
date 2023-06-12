@@ -5,16 +5,23 @@
 #include <sys/msg.h>
 #include <sys/ipc.h>
 #include <mqueue.h>
+#include <unistd.h>
 
 #include "shared.h"
 
 //// MESSAGE ////
 
-void set_content( msg_buffer * message, char content[MAX_MESSAGE_SIZE]) {
+void set_content( 
+    msg_buffer * message, 
+    char content[MAX_MESSAGE_SIZE]
+) {
     strcpy(message->content, content);
 }
 
-void set_mq_name( msg_buffer * message, char mq_name[MAX_QUEUE_NAME_SIZE]) {
+void set_mq_name( 
+    msg_buffer * message, 
+    char mq_name[MAX_QUEUE_NAME_SIZE]
+) {
     strcpy(message->mq_name, mq_name);
 }
 
@@ -64,8 +71,8 @@ mqd_t create_queue(const char * name) {
     return mq_open(name, O_RDWR | O_CREAT, 0666, &attributes);
 }
 
-void send_message( msg_buffer * message, mqd_t message_queue ) {
-    mq_send(message_queue, (char *) message, MAX_MESSAGE_BUFFER_SIZE, message->mtype);
+void send_message( msg_buffer * message, int _socket ) {
+    write(_socket, message, MAX_MESSAGE_BUFFER_SIZE);
 }
 
 //// UTILS ////
@@ -83,6 +90,7 @@ char * command_to_string(command cmd) {
         case E_2ALL: return "2ALL";
         case E_2ONE: return "2ONE";
         case E_STOP: return "STOP";
+        case E_PING: return "PING";
         default:     return "None";
     }
 }

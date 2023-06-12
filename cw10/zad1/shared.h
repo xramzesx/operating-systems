@@ -9,6 +9,7 @@
 #define MAX_CONNECTED_CLIENTS   5
 #define MAX_BUFFER_SIZE         (2 * MAX_MESSAGE_SIZE)
 #define MAX_QUEUE_NAME_SIZE     50
+#define MAX_NICKNAME_SIZE       20
 
 //// QUEUE CONFIG ////
 
@@ -34,7 +35,8 @@
 typedef enum {
     E_INIT, E_LIST, 
     E_2ALL, E_2ONE, 
-    E_STOP, E_NONE
+    E_STOP, E_PING,
+    E_NONE
 } command;
 
 typedef void (*sighandler_t)(int);
@@ -48,6 +50,7 @@ typedef struct {
     command command;
     int client_id;
     int other_id;
+    char other_nick[MAX_NICKNAME_SIZE];
     struct tm time;
 } msg_buffer;
 
@@ -76,7 +79,7 @@ mqd_t create_queue(const char * name);
 
 void send_message( 
     msg_buffer * message, 
-    mqd_t message_queue 
+    int _socket 
 );
 
 //// UTILS ////
