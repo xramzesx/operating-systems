@@ -61,6 +61,86 @@ char * local_path;
 
 //// SOCKET MANAGING ////
 
+void remove_client(int client_id);
+bool add_epoll_client( int sock_fd, int client_id );
+bool add_epoll_socket( int sock_fd );
+bool init_inet_connection( int port );
+bool init_local_connection( const char * path );
+bool init_socket_connection( const char * path, int port );
+
+int is_connected_client( msg_buffer * message );
+int check_connection(msg_buffer * message, int client_socket);
+
+//// HANDLERS ////
+
+bool handle_init( msg_buffer * message, int client_socket );
+bool handle_list( msg_buffer * message, int client_socket );
+bool handle_2all( msg_buffer * message, int client_socket );
+bool handle_2one( msg_buffer * message, int client_socket );
+bool handle_stop( msg_buffer * message, int client_socket );
+bool handle_ping( msg_buffer * message, int client_socket );
+
+void log_handled_message( msg_buffer * message );
+
+bool handle_message( msg_buffer * message, int client_socket );
+
+//// TERMINATION ////
+
+void handle_exit();
+void handle_sigint(int pid);
+void * routine_ping (void * args);
+void * handle_connections();
+
+//// THREADS ////
+
+pthread_t thread_ping;
+
+//// MAIN ////
+
+int main (int argc, char **argv) {
+
+    if (argc < 3 ) {
+        perror("Not enough arguments");
+        return 1;
+    }
+
+    if (argc > 3) {
+        perror("Too many arguments");
+        return 2;
+    }
+
+    int port = atoi(argv[1]);
+    local_path = argv[2];
+
+    //// SETUP TERMINATION ////
+
+    setup_exit_handler(handle_sigint);
+    atexit(handle_exit);
+
+    //// CREATE MESSAGE QUEUE ////
+
+    if ( !init_socket_connection(local_path, port) ) {
+        perror("Unable to create connection");
+        return 3;
+    }
+
+    //// SETUP CLIENT QUEUES ////
+
+    for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
+        client_sessions[id] = NULL;
+    }
+
+    pthread_create(&thread_ping, NULL, routine_ping, NULL);    
+
+    /// TODO: make it as thread ///
+    handle_connections();
+    
+
+    return 0;
+}
+
+
+
 void remove_client(int client_id) {
     if ( client_sessions[client_id] == NULL)
     return;
@@ -589,54 +669,6 @@ void * handle_connections() {
         pthread_mutex_unlock(&mutex_client);
 
     } while(is_running);
-
-    return 0;
-}
-
-//// THREADS ////
-
-pthread_t thread_ping;
-
-//// MAIN ////
-
-int main (int argc, char **argv) {
-
-    if (argc < 3 ) {
-        perror("Not enough arguments");
-        return 1;
-    }
-
-    if (argc > 3) {
-        perror("Too many arguments");
-        return 2;
-    }
-
-    int port = atoi(argv[1]);
-    local_path = argv[2];
-
-    //// SETUP TERMINATION ////
-
-    setup_exit_handler(handle_sigint);
-    atexit(handle_exit);
-
-    //// CREATE MESSAGE QUEUE ////
-
-    if ( !init_socket_connection(local_path, port) ) {
-        perror("Unable to create connection");
-        return 3;
-    }
-
-    //// SETUP CLIENT QUEUES ////
-
-    for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
-        client_sessions[id] = NULL;
-    }
-
-    pthread_create(&thread_ping, NULL, routine_ping, NULL);    
-
-    /// TODO: make it as thread ///
-    handle_connections();
-    
 
     return 0;
 }

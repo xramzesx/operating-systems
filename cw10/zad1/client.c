@@ -48,192 +48,25 @@ typedef enum {
 
 //// MESSAGE UTILS ////
 
-msg_buffer c_create_message(command cmd, char content[MAX_MESSAGE_SIZE]) {
-    pthread_mutex_lock(&mutex_socket);
-    msg_buffer message =  create_message(cmd, content, "", client_id, -1);
-    pthread_mutex_unlock(&mutex_socket);
-    
-    return message;
-}
-
-void c_send_message( msg_buffer * message ) {
-    pthread_mutex_lock(&mutex_socket);
-    send_message( message, server_socket );
-    pthread_mutex_unlock(&mutex_socket);
-}
+msg_buffer c_create_message(command cmd, char content[MAX_MESSAGE_SIZE]);
+void c_send_message( msg_buffer * message );
 
 //// RESPONSE HANLDING ////
 
 bool is_client_active = true;
 
-void handle_receive(int sock) {
-    pthread_mutex_lock(&mutex_receive);
-    msg_buffer * message = calloc(1, sizeof(msg_buffer));
+void handle_receive(int sock);
 
-    read(sock, message, MAX_MESSAGE_BUFFER_SIZE);
-
-    switch (message->command) {
-        case E_2ONE:
-            printf(
-                "[%02d:%02d:%02d] ", 
-                message->time.tm_hour, 
-                message->time.tm_min, 
-                message->time.tm_sec
-            );
-        case E_2ALL:
-            printf("from: [%d][%s]:\n", message->other_id, message->other_nick);
-        case E_LIST:
-            printf("%s\n", message->content);
-            break;
-        case E_STOP:
-            free(message);
-            server_closed = 1;
-            pthread_mutex_unlock(&mutex_receive);
-            exit(0);
-            break;
-        case E_PING:
-            msg_buffer message = c_create_message(E_PING, "PING");
-            c_send_message(&message);
-            break;
-        default:
-            break;
-    }
-
-    free(message);
-
-    pthread_mutex_unlock(&mutex_receive);
-}
-
-void check_server_response() {
-    struct epoll_event events[MAX_EPOLL_EVENTS];
-
-    int readed_fds = epoll_wait(server_epoll, events, MAX_EPOLL_EVENTS, MAX_EPOLL_TIMEOUT);
-
-    for (int i = 0; i < readed_fds; i++ ) {
-        handle_receive(events[i].data.fd);
-    }
-}
-
-void * routine_receive( void * args  ){
-    bool is_active;
-
-    do {
-        check_server_response();
-
-        /// AVOID RACE CONDITION ///
-        pthread_mutex_lock(&mutex_receive);
-        is_active = is_client_active;  
-        pthread_mutex_unlock(&mutex_receive);
-    } while (is_active);
-
-    return 0;
-}
+void check_server_response();
+void * routine_receive( void * args );
 
 //// TERMINATION ////
 
-void handle_exit() {
-    pthread_mutex_lock(&mutex_receive);
-    is_client_active = false;
-    pthread_mutex_unlock(&mutex_receive);
-
-    pthread_join(thread_receive, NULL);
-
-    msg_buffer message = c_create_message(E_STOP, "stop");
-    if (server_closed == 0) {
-        c_send_message(&message);
-        read(server_socket, &message, MAX_MESSAGE_BUFFER_SIZE);
-    }
-
-    close(server_socket);
-
-    printf("client exit\n");
-}
-
-void handle_sigint(int pid) {
-    printf("terminated by process : %d\n", pid);
-    exit(0);
-}
-
-bool init_local_socket(
-    const char * path 
-) {
-    server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
-    if ( server_socket == -1 ) {
-        perror("[Error] at socket: init");
-        return false;
-    }
-
-    struct sockaddr_un soc_server;
-    soc_server.sun_family = AF_UNIX;
-    strcpy(soc_server.sun_path, path);
-
-    if (
-        connect(
-            server_socket, 
-            (struct sockaddr *) &soc_server, 
-            sizeof (soc_server)
-        ) == -1
-    ) {
-        perror("[Error] at socket: connect");
-        return false;
-    }
-
-    return true;
-}
-
-bool init_inet_socket(
-    const char * address,
-    const int port
-){
-    struct sockaddr_in soc_server;
-
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (server_socket == -1) {
-        perror("[Error] at socket: init");
-        return false;
-    }
-
-    memset(&soc_server, 0, sizeof(soc_server));
-    soc_server.sin_family = AF_INET;
-    soc_server.sin_port = htons(port);
-    soc_server.sin_addr.s_addr = inet_addr(address);
-
-    if (
-        connect(
-            server_socket,
-            (struct sockaddr *) &soc_server,
-            sizeof soc_server
-        ) < 0
-    ) {
-        perror("Error at socket: connect");
-        return false;
-    }
-
-    return true;
-}
-
-bool setup_epoll(int sock) {
-    if (server_epoll == 0) {
-        server_epoll = epoll_create1(0);
-    }
-    
-    if (server_epoll == -1) {
-        perror("[Error] at setup_epoll: init");
-        return false;    
-    }
-
-    struct epoll_event event;
-    event.events = EPOLLIN | EPOLLPRI;
-    event.data.fd = sock;
-
-    if (epoll_ctl(server_epoll, EPOLL_CTL_ADD, sock, &event) == -1) {
-        perror("[Error] at setup_epoll: epoll_ctl");
-        return false;
-    }
-
-    return true;
-}
+void handle_exit();
+void handle_sigint( int pid );
+bool init_local_socket( const char * path );
+bool init_inet_socket( const char * address, const int port );
+bool setup_epoll(int sock);
 
 //// MAIN ////
 
@@ -260,8 +93,6 @@ int main (int argc, char ** argv) {
 
     char * connection_socket = argv[2]; // local or inet
     char * server_address    = argv[3];
-
-    int server_port          = atoi(argv[4]);
 
     SocketType socket_type = ST_UNKNOWN;
 
@@ -297,7 +128,7 @@ int main (int argc, char ** argv) {
 
     if (
         socket_type == ST_INET && 
-        !init_inet_socket(server_address, server_port)
+        !init_inet_socket(server_address, atoi(argv[4]))
     ) {
         perror("[Error] failed to create inet socket");
         return 5;
@@ -404,4 +235,190 @@ int main (int argc, char ** argv) {
 
 
     return 0;
+}
+
+//// MESSAGE UTILS ////
+
+msg_buffer c_create_message(command cmd, char content[MAX_MESSAGE_SIZE]) {
+    pthread_mutex_lock(&mutex_socket);
+    msg_buffer message =  create_message(cmd, content, "", client_id, -1);
+    pthread_mutex_unlock(&mutex_socket);
+    
+    return message;
+}
+
+void c_send_message( msg_buffer * message ) {
+    pthread_mutex_lock(&mutex_socket);
+    send_message( message, server_socket );
+    pthread_mutex_unlock(&mutex_socket);
+}
+
+//// RESPONSE HANLDING ////
+
+void handle_receive(int sock) {
+    pthread_mutex_lock(&mutex_receive);
+    msg_buffer * message = calloc(1, sizeof(msg_buffer));
+
+    read(sock, message, MAX_MESSAGE_BUFFER_SIZE);
+
+    switch (message->command) {
+        case E_2ONE:
+            printf(
+                "[%02d:%02d:%02d] ", 
+                message->time.tm_hour, 
+                message->time.tm_min, 
+                message->time.tm_sec
+            );
+        case E_2ALL:
+            printf("from: [%d][%s]:\n", message->other_id, message->other_nick);
+        case E_LIST:
+            printf("%s\n", message->content);
+            break;
+        case E_STOP:
+            free(message);
+            server_closed = 1;
+            pthread_mutex_unlock(&mutex_receive);
+            exit(0);
+            break;
+        case E_PING:
+            msg_buffer message = c_create_message(E_PING, "PING");
+            c_send_message(&message);
+            break;
+        default:
+            break;
+    }
+
+    free(message);
+
+    pthread_mutex_unlock(&mutex_receive);
+}
+
+void check_server_response() {
+    struct epoll_event events[MAX_EPOLL_EVENTS];
+
+    int readed_fds = epoll_wait(server_epoll, events, MAX_EPOLL_EVENTS, MAX_EPOLL_TIMEOUT);
+
+    for (int i = 0; i < readed_fds; i++ ) {
+        handle_receive(events[i].data.fd);
+    }
+}
+
+void * routine_receive( void * args  ){
+    bool is_active;
+
+    do {
+        check_server_response();
+
+        /// AVOID RACE CONDITION ///
+        pthread_mutex_lock(&mutex_receive);
+        is_active = is_client_active;  
+        pthread_mutex_unlock(&mutex_receive);
+    } while (is_active);
+
+    return 0;
+}
+
+//// TERMINATION ////
+
+void handle_exit() {
+    pthread_mutex_lock(&mutex_receive);
+    is_client_active = false;
+    pthread_mutex_unlock(&mutex_receive);
+
+    pthread_join(thread_receive, NULL);
+
+    msg_buffer message = c_create_message(E_STOP, "stop");
+    if (server_closed == 0) {
+        c_send_message(&message);
+        read(server_socket, &message, MAX_MESSAGE_BUFFER_SIZE);
+    }
+
+    close(server_socket);
+
+    printf("client exit\n");
+}
+
+void handle_sigint(int pid) {
+    printf("terminated by process : %d\n", pid);
+    exit(0);
+}
+
+bool init_local_socket(
+    const char * path 
+) {
+    server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+    if ( server_socket == -1 ) {
+        perror("[Error] at socket: init");
+        return false;
+    }
+
+    struct sockaddr_un soc_server;
+    soc_server.sun_family = AF_UNIX;
+    strcpy(soc_server.sun_path, path);
+    if (
+        connect(
+            server_socket, 
+            (struct sockaddr *) &soc_server, 
+            sizeof (soc_server)
+        ) == -1
+    ) {
+        perror("[Error] at socket: connect");
+        return false;
+    }
+
+    return true;
+}
+
+bool init_inet_socket(
+    const char * address,
+    const int port
+){
+    struct sockaddr_in soc_server;
+
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (server_socket == -1) {
+        perror("[Error] at socket: init");
+        return false;
+    }
+
+    memset(&soc_server, 0, sizeof(soc_server));
+    soc_server.sin_family = AF_INET;
+    soc_server.sin_port = htons(port);
+    soc_server.sin_addr.s_addr = inet_addr(address);
+
+    if (
+        connect(
+            server_socket,
+            (struct sockaddr *) &soc_server,
+            sizeof soc_server
+        ) < 0
+    ) {
+        perror("Error at socket: connect");
+        return false;
+    }
+
+    return true;
+}
+
+bool setup_epoll(int sock) {
+    if (server_epoll == 0) {
+        server_epoll = epoll_create1(0);
+    }
+    
+    if (server_epoll == -1) {
+        perror("[Error] at setup_epoll: init");
+        return false;    
+    }
+
+    struct epoll_event event;
+    event.events = EPOLLIN | EPOLLPRI;
+    event.data.fd = sock;
+
+    if (epoll_ctl(server_epoll, EPOLL_CTL_ADD, sock, &event) == -1) {
+        perror("[Error] at setup_epoll: epoll_ctl");
+        return false;
+    }
+
+    return true;
 }
