@@ -6,7 +6,7 @@ long long traverse_dir (const char * path) {
     
     long long result = 0;
 
-    DIR * dir           = NULL;
+    DIR * dir          = NULL;
     struct dirent * dp = NULL;
 
     dir = opendir(path);
