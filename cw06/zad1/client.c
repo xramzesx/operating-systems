@@ -26,8 +26,7 @@ void c_send_message( msg_buffer * message ) {
 }
 
 void handle_server_response() {
-    msg_buffer * message = calloc(2, sizeof(msg_buffer));
-    // printf("sssss");
+    msg_buffer * message = calloc(1, sizeof(msg_buffer));
 
     msgrcv(client_msgid, message, sizeof(*message), PRIORITY_MSGTYP, 0);
 
