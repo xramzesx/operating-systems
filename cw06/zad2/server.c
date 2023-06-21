@@ -5,13 +5,16 @@
 #include <sys/ipc.h>
 #include <unistd.h>
 
+#include <fcntl.h>
+#include <mqueue.h>
+
 #include "shared.h"
 
 //// CACHE ////
 
 mqd_t server_queue;
 
-mqd_t client_queues[MAX_CONNECTED_CLIENTS];
+mqd_t * client_queues[MAX_CONNECTED_CLIENTS];
 
 int is_connected_client(msg_buffer * message ){
     return 
@@ -47,7 +50,8 @@ void handle_init( msg_buffer * message ) {
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
         if (client_queues[id] == NULL) {
             client_id = id;
-            client_queues[client_id] = mq_open(message->mq_name, O_RDWR);
+            client_queues[client_id] = calloc(1, sizeof(mqd_t));
+            *client_queues[client_id] = mq_open(message->mq_name, O_RDWR);
             break;
         }
     }
@@ -77,7 +81,7 @@ void handle_init( msg_buffer * message ) {
         -1
     );
 
-    send_message(&response, client_queues[client_id]);
+    send_message(&response, *client_queues[client_id]);
 }
 
 void handle_list( msg_buffer * message ){
@@ -104,7 +108,7 @@ void handle_list( msg_buffer * message ){
         -1
     );
 
-    send_message(&response, client_queues[message->client_id]);
+    send_message(&response, *client_queues[message->client_id]);
 }
 
 void handle_2all( msg_buffer * message ){
@@ -120,7 +124,7 @@ void handle_2all( msg_buffer * message ){
                 id, 
                 message->client_id
             );
-            send_message(&tmp_msg, client_queues[id]);
+            send_message(&tmp_msg, *client_queues[id]);
         }
     }
 }
@@ -138,7 +142,7 @@ void handle_2one( msg_buffer * message ){
     message->other_id = message->client_id;
     message->client_id = other_id;
 
-    send_message( message, client_queues[other_id] );
+    send_message( message, *client_queues[other_id] );
 }
 
 void handle_stop( msg_buffer * message ){
@@ -154,10 +158,11 @@ void handle_stop( msg_buffer * message ){
         message->client_id, 
         -1
     );
-    send_message(&response, client_queues[message->client_id] );
+    send_message(&response, *client_queues[message->client_id] );
     
-    mq_close(client_queues[message->client_id]);
+    mq_close(*client_queues[message->client_id]);
     
+    free(client_queues[message->client_id]);
     client_queues[message->client_id] = NULL;
 }
 
@@ -221,8 +226,9 @@ void handle_exit() {
             -1
         );
 
-        send_message(&message, client_queues[id]);
-        mq_close(client_queues[id]);
+        send_message(&message, *client_queues[id]);
+        mq_close(*client_queues[id]);
+        free(client_queues[id]);
     }
 
     mq_close(server_queue);

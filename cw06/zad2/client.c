@@ -5,6 +5,7 @@
 #include <sys/ipc.h>
 #include <unistd.h>
 #include <time.h>
+#include <mqueue.h>
 
 #include "shared.h"
 
