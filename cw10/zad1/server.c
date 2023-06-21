@@ -400,7 +400,7 @@ bool handle_init( msg_buffer * message, int client_socket) {
 bool handle_list( msg_buffer * message, int client_socket ){
     if (!check_connection(message, client_socket)) return false;
 
-    char buffer[MAX_MESSAGE_SIZE];
+    char buffer[MAX_MESSAGE_SIZE]= {0};
 
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
         if (client_sessions[id] != NULL) {
@@ -490,7 +490,7 @@ bool handle_ping(msg_buffer * message, int client_socket) {
 
     client_sessions[message->client_id]->is_active = true;
 
-    return 0;
+    return true;
 }
 
 void log_handled_message( msg_buffer * message ) {

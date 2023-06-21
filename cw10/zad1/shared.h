@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <time.h>
-#include <mqueue.h>
 
 //// GENERAL ////
 
@@ -74,8 +73,6 @@ msg_buffer create_message(
     int client_id,
     int other_id
 );
-
-mqd_t create_queue(const char * name);
 
 void send_message( 
     msg_buffer * message, 
