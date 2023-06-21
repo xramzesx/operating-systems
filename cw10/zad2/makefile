@@ -1,4 +1,4 @@
-CFLAGS=-Wall -pthread -fsanitize=thread
+CFLAGS=-Wall -pthread
 
 #### COMPILATION ####
 
@@ -17,9 +17,15 @@ client:
 	@gcc -c client.c $(CFLAGS) 
 	@gcc client.o shared.a -o client.exe $(CFLAGS)
 
-all:
+lall:
 	@make -s server
 	@make -s client
+
+all:
+	@make -s clean
+	@make -C ../zad1 -s all
+	@cp ../zad1/server.exe ../zad2/.
+	@cp ../zad1/client.exe ../zad2/.
 
 #### UTILS ####
 
@@ -29,3 +35,7 @@ tmp:
 	
 clean:
 	rm -f *.o *.so *.exe *.a 
+
+kill:
+	chmod +x ./kill.sh
+	./kill.sh

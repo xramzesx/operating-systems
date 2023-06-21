@@ -35,6 +35,7 @@ typedef struct {
 typedef struct {
     char nick[MAX_NICKNAME_SIZE];
     int socket;
+    Address address;
     bool is_active;
 } ClientData;
 
@@ -69,19 +70,19 @@ bool init_local_connection( const char * path );
 bool init_socket_connection( const char * path, int port );
 
 int is_connected_client( msg_buffer * message );
-int check_connection(msg_buffer * message, int client_socket);
+int check_connection(msg_buffer * message, int client_socket, Address address);
 
 //// HANDLERS ////
 
-bool handle_init( msg_buffer * message, int client_socket );
-bool handle_list( msg_buffer * message, int client_socket );
-bool handle_2all( msg_buffer * message, int client_socket );
-bool handle_2one( msg_buffer * message, int client_socket );
-bool handle_stop( msg_buffer * message, int client_socket );
-bool handle_ping( msg_buffer * message, int client_socket );
+bool handle_init( msg_buffer * message, int client_socket, Address address);
+bool handle_list( msg_buffer * message, int client_socket, Address address);
+bool handle_2all( msg_buffer * message, int client_socket, Address address);
+bool handle_2one( msg_buffer * message, int client_socket, Address address);
+bool handle_stop( msg_buffer * message, int client_socket, Address address);
+bool handle_ping( msg_buffer * message, int client_socket, Address address);
 
 void log_handled_message( msg_buffer * message );
-bool handle_message( msg_buffer * message, int client_socket );
+bool handle_message( msg_buffer * message, int client_socket, Address address );
 
 //// TERMINATION ////
 
@@ -154,7 +155,11 @@ void remove_client(int client_id) {
         -1
     );
 
-    send_message(&message, client_sessions[client_id]->socket);
+    send_message(
+        &message, 
+        client_sessions[client_id]->socket, 
+        client_sessions[client_id]->address 
+    );
 
     /// CLEANUP CLIENT SOCKETS ///
 
@@ -219,7 +224,7 @@ bool init_inet_connection(
     int port
 ){
     struct sockaddr_in soc_server;
-    inet_socket = socket(AF_INET, SOCK_STREAM, 0);
+    inet_socket = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (inet_socket == -1) {
         perror("[Error] at inet_socket: init");
@@ -256,18 +261,13 @@ bool init_inet_connection(
         return false;
     }
 
-    if (listen(inet_socket, MAX_CONNECTED_CLIENTS) == -1) {
-        perror("[Error] at inet_socket: listen");
-        return false;
-    }
-
     return add_epoll_socket(inet_socket);
 }
 
 bool init_local_connection(
     const char * path
 ) {
-    local_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+    local_socket = socket(AF_UNIX, SOCK_DGRAM, 0);
     if (local_socket == -1) {
         perror("[Error] at local_socket: init");
         return false;
@@ -285,11 +285,6 @@ bool init_local_connection(
         ) == -1
     ) {
         perror("[Error] at local_socket: bind");
-        return false;
-    }
-
-    if (listen(local_socket, MAX_CONNECTED_CLIENTS) == -1) {
-        perror("[Error] at inet_socket: listen");
         return false;
     }
 
@@ -329,7 +324,7 @@ int is_connected_client( msg_buffer * message ){
         client_sessions[message->client_id] != NULL;
 }
 
-int check_connection(msg_buffer * message, int client_socket) {
+int check_connection(msg_buffer * message, int client_socket, Address address) {
     if (is_connected_client(message))
         return 1;
 
@@ -343,14 +338,14 @@ int check_connection(msg_buffer * message, int client_socket) {
         -1
     );
 
-    send_message(&response, client_socket);
+    send_message(&response, client_socket, address);
 
     return 0;
 }
 
 //// HANDLERS ////
 
-bool handle_init( msg_buffer * message, int client_socket) {
+bool handle_init( msg_buffer * message, int client_socket, Address address) {
     int client_id = -1;
 
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
@@ -361,13 +356,14 @@ bool handle_init( msg_buffer * message, int client_socket) {
             client_sessions[client_id] = calloc(1, sizeof ( ClientData ));
             client_sessions[client_id]->socket = client_socket;
             client_sessions[client_id]->is_active = true;
+            client_sessions[client_id]->address = address;
             strcpy(client_sessions[client_id]->nick,message->content);
             
             break;
         }
     }
 
-    if (client_id == -1 || !add_epoll_client(client_socket, client_id)) {
+    if (client_id == -1 ) {
         char content[MAX_MESSAGE_SIZE] = "Connection failed: too many connected clients";
 
         msg_buffer response = create_message(
@@ -378,7 +374,7 @@ bool handle_init( msg_buffer * message, int client_socket) {
             -1
         );
 
-        send_message(&response, client_socket);
+        send_message(&response, client_socket, address);
         return false;
     }
 
@@ -392,14 +388,14 @@ bool handle_init( msg_buffer * message, int client_socket) {
         -1
     );
 
-    send_message(&response, client_socket);
+    send_message(&response, client_socket, address);
     return true;
 }
 
-bool handle_list( msg_buffer * message, int client_socket ){
-    if (!check_connection(message, client_socket)) return false;
+bool handle_list( msg_buffer * message, int client_socket, Address address ){
+    if (!check_connection(message, client_socket, address)) return false;
 
-    char buffer[MAX_MESSAGE_SIZE];
+    char buffer[MAX_MESSAGE_SIZE] = {0};
 
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
         if (client_sessions[id] != NULL) {
@@ -420,12 +416,12 @@ bool handle_list( msg_buffer * message, int client_socket ){
         -1
     );
 
-    send_message(&response, client_socket);
+    send_message(&response, client_socket, address);
     return true;
 }
 
-bool handle_2all( msg_buffer * message, int client_socket ){
-    if (!check_connection(message, client_socket)) return false;
+bool handle_2all( msg_buffer * message, int client_socket, Address address){
+    if (!check_connection(message, client_socket, address)) return false;
     
     for (int id = 0; id < MAX_CONNECTED_CLIENTS; id++) {
         if (client_sessions[id] != NULL && id != message->client_id) {
@@ -444,15 +440,15 @@ bool handle_2all( msg_buffer * message, int client_socket ){
                 client_sessions[message->client_id]->nick
             );
 
-            send_message(&tmp_msg, client_sessions[id]->socket);
+            send_message(&tmp_msg, client_sessions[id]->socket, client_sessions[id]->address);
         }
     }
 
     return true;
 }
 
-bool handle_2one( msg_buffer * message, int client_socket ){
-    if (!check_connection(message, client_socket)) return false;
+bool handle_2one( msg_buffer * message, int client_socket, Address address ){
+    if (!check_connection(message, client_socket, address)) return false;
 
     if (message->other_id < 0 || message->other_id >= MAX_BUFFER_SIZE)
         return false;
@@ -469,11 +465,11 @@ bool handle_2one( msg_buffer * message, int client_socket ){
         client_sessions[message->other_id]->nick
     );
 
-    send_message( message, client_sessions[other_id]->socket );
+    send_message( message, client_sessions[other_id]->socket, client_sessions[other_id]->address );
     return true;
 }
 
-bool handle_stop( msg_buffer * message, int client_socket ){
+bool handle_stop( msg_buffer * message, int client_socket, Address address ){
     if ( message->client_id < 0 || message->client_id >= MAX_CONNECTED_CLIENTS ) {
         return false;
     }
@@ -483,13 +479,13 @@ bool handle_stop( msg_buffer * message, int client_socket ){
     return true;
 }
 
-bool handle_ping(msg_buffer * message, int client_socket) {
-    if (!check_connection(message, client_socket))
+bool handle_ping(msg_buffer * message, int client_socket, Address address) {
+    if (!check_connection(message, client_socket, address))
         return false;
 
     client_sessions[message->client_id]->is_active = true;
 
-    return 0;
+    return true;
 }
 
 void log_handled_message( msg_buffer * message ) {
@@ -518,18 +514,18 @@ void log_handled_message( msg_buffer * message ) {
     fclose(file);
 }
 
-bool handle_message( msg_buffer * message, int client_socket ) {
+bool handle_message( msg_buffer * message, int client_socket, Address address ) {
     pthread_mutex_lock(&mutex_client);
 
     bool is_success = true;
 
     switch (message->command) {
-        case E_INIT: is_success = handle_init(message, client_socket); break;
-        case E_LIST: is_success = handle_list(message, client_socket); break;
-        case E_2ALL: is_success = handle_2all(message, client_socket); break;
-        case E_2ONE: is_success = handle_2one(message, client_socket); break;
-        case E_STOP: is_success = handle_stop(message, client_socket); break;
-        case E_PING: is_success = handle_ping(message, client_socket); break;
+        case E_INIT: is_success = handle_init(message, client_socket, address); break;
+        case E_LIST: is_success = handle_list(message, client_socket, address); break;
+        case E_2ALL: is_success = handle_2all(message, client_socket, address); break;
+        case E_2ONE: is_success = handle_2one(message, client_socket, address); break;
+        case E_STOP: is_success = handle_stop(message, client_socket, address); break;
+        case E_PING: is_success = handle_ping(message, client_socket, address); break;
         default:     is_success = false;;
     }
 
@@ -583,7 +579,11 @@ void * routine_ping (void * args) {
             if (client_sessions[id] != NULL) {
                 msg_buffer message;
                 message.command = E_PING;
-                send_message(&message, client_sessions[id]->socket);
+                send_message(
+                    &message, 
+                    client_sessions[id]->socket, 
+                    client_sessions[id]->address
+                );
                 printf("ping %s with id: %d\n", client_sessions[id]->nick, id);
                 client_sessions[id]->is_active = false;
             }
@@ -621,45 +621,19 @@ void * handle_connections() {
 
         for (int i = 0; i < readed_fds; i++) {
             EventData * event_data = events[i].data.ptr;
+            
+            Address soc_client;
+            int soc_length = sizeof(soc_client);
+            printf("incoming %d\n", i);
 
-            if ( event_data->type == EVENT_SOCKET ) {
+            msg_buffer message;
+            recvfrom(event_data->socket, &message, MAX_MESSAGE_BUFFER_SIZE, 0,(struct sockaddr *) &soc_client, (socklen_t *)&soc_length);
 
-                /// ACCEPT INCOMMING CONNECTION ///
-                struct sockaddr_in soc_client;
-                int soc_length = sizeof (soc_client);
-
-                int client_socket = accept(
-                    event_data->socket,
-                    (struct sockaddr *) &soc_client,
-                    (socklen_t *) &soc_length
-                );
-
-                if (client_socket == -1) {
-                    perror("[Error] at accepting new connection");
-                    continue;
-                }
-
-                /// SETUP NEW CLIENT ///
-                msg_buffer message;
-                read(client_socket, &message, MAX_MESSAGE_BUFFER_SIZE);
-
-                if (!handle_message(&message, client_socket)) {
-                    perror("Unable to handle message");
-                    continue;
-                }
-                
-            }
-
-            if (event_data->type == EVENT_CLIENT) {
-                
-                ClientData * client_data = client_sessions[event_data->client_id];
-                
-                msg_buffer message_buffer;
-                
-                printf("incoming %d\n", i);
-
-                read(client_data->socket, &message_buffer, MAX_MESSAGE_BUFFER_SIZE);        
-                handle_message(&message_buffer, client_data->socket);
+            if (!handle_message(&message, event_data->socket, soc_client)) {
+                char buffer[MAX_MESSAGE_SIZE];
+                sprintf(buffer,"Unable to handle '%s' message", command_to_string(message.command));
+                perror(buffer);
+                continue;
             }
         }
 

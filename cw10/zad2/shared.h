@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
-#include <mqueue.h>
+#include <sys/un.h>
+#include <arpa/inet.h>
 
 //// GENERAL ////
 
@@ -41,6 +42,13 @@ typedef enum {
 
 typedef void (*sighandler_t)(int);
 
+//// UNIVERSAL ADDRESS STRUCTURE ////
+
+typedef union {
+    struct sockaddr_un local;
+    struct sockaddr_in inet;
+} Address;
+
 //// MSGP STRUCTURE ////
 
 typedef struct {
@@ -75,11 +83,10 @@ msg_buffer create_message(
     int other_id
 );
 
-mqd_t create_queue(const char * name);
-
 void send_message( 
     msg_buffer * message, 
-    int _socket 
+    int _socket,
+    Address _address
 );
 
 //// UTILS ////

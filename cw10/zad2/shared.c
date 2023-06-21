@@ -64,15 +64,19 @@ msg_buffer create_message(
     return buffer;
 }
 
-mqd_t create_queue(const char * name) {
-    struct mq_attr attributes;
-    attributes.mq_maxmsg = MAX_CONNECTED_CLIENTS;
-    attributes.mq_msgsize = MAX_MESSAGE_BUFFER_SIZE;
-    return mq_open(name, O_RDWR | O_CREAT, 0666, &attributes);
-}
-
-void send_message( msg_buffer * message, int _socket ) {
-    write(_socket, message, MAX_MESSAGE_BUFFER_SIZE);
+void send_message( 
+    msg_buffer * message, 
+    int _socket, 
+    Address _address
+) {
+    sendto(
+        _socket, 
+        message, 
+        MAX_MESSAGE_BUFFER_SIZE, 
+        0, 
+        (struct sockaddr *) &_address, 
+        sizeof(Address)
+    );
 }
 
 //// UTILS ////

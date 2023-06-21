@@ -32,6 +32,8 @@ char client_nickname[MAX_NICKNAME_SIZE];
 int server_socket = 0;
 int server_epoll = 0;
 
+Address server_address;
+int server_address_len = sizeof(Address);
 int client_id = -1;
 
 //// MUTEXES & THREADS ////
@@ -154,8 +156,15 @@ int main (int argc, char ** argv) {
     msg_buffer message_buffer = c_create_message(E_INIT, client_nickname);
     c_send_message(&message_buffer);
 
-    read(server_socket, &message_buffer, sizeof(message_buffer));
-
+    recvfrom(
+        server_socket, 
+        &message_buffer, 
+        MAX_MESSAGE_BUFFER_SIZE, 
+        0, 
+        (struct sockaddr *) &server_address, 
+        (socklen_t *) &server_address_len
+    );
+    
     client_id = message_buffer.client_id;
 
     if (client_id == -1) {
@@ -249,7 +258,7 @@ msg_buffer c_create_message(command cmd, char content[MAX_MESSAGE_SIZE]) {
 
 void c_send_message( msg_buffer * message ) {
     pthread_mutex_lock(&mutex_socket);
-    send_message( message, server_socket );
+    send_message( message, server_socket, server_address );
     pthread_mutex_unlock(&mutex_socket);
 }
 
@@ -259,7 +268,7 @@ void handle_receive(int sock) {
     pthread_mutex_lock(&mutex_receive);
     msg_buffer * message = calloc(1, sizeof(msg_buffer));
 
-    read(sock, message, MAX_MESSAGE_BUFFER_SIZE);
+    recvfrom(sock, message, MAX_MESSAGE_BUFFER_SIZE, 0, (struct sockaddr *) &server_address, (socklen_t *) &server_address_len);
 
     switch (message->command) {
         case E_2ONE:
@@ -277,6 +286,7 @@ void handle_receive(int sock) {
         case E_STOP:
             free(message);
             server_closed = 1;
+            free(message);
             pthread_mutex_unlock(&mutex_receive);
             exit(0);
             break;
@@ -330,7 +340,7 @@ void handle_exit() {
     msg_buffer message = c_create_message(E_STOP, "stop");
     if (server_closed == 0) {
         c_send_message(&message);
-        read(server_socket, &message, MAX_MESSAGE_BUFFER_SIZE);
+        recvfrom(server_socket, &message, MAX_MESSAGE_BUFFER_SIZE, 0, (struct sockaddr *) &server_address, (socklen_t *) &server_address_len);
     }
 
     close(server_socket);
@@ -346,7 +356,7 @@ void handle_sigint(int pid) {
 bool init_local_socket(
     const char * path 
 ) {
-    server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+    server_socket = socket(AF_UNIX, SOCK_DGRAM, 0);
     if ( server_socket == -1 ) {
         perror("[Error] at socket: init");
         return false;
@@ -366,6 +376,9 @@ bool init_local_socket(
         return false;
     }
 
+    server_address.local = soc_server;
+    server_address_len = sizeof(struct sockaddr_un);
+    
     return true;
 }
 
@@ -375,7 +388,7 @@ bool init_inet_socket(
 ){
     struct sockaddr_in soc_server;
 
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    server_socket = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (server_socket == -1) {
         perror("[Error] at socket: init");
@@ -397,6 +410,9 @@ bool init_inet_socket(
         perror("Error at socket: connect");
         return false;
     }
+
+    server_address.inet = soc_server;
+    server_address_len = sizeof(struct sockaddr_in);
 
     return true;
 }
