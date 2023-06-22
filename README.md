@@ -4,16 +4,16 @@ This repository contains all ten assignments for the Operating Systems course at
 
 ### Index
 
-- [`lab1` - Memory management, libraries and time measurements](lab1)
-- [`lab2` - File system, operations on files](lab2)
-- [`lab3` - Create processes, process environment and process controll (*forks*)](lab3)
-- [`lab4` - IPC - Signals in Unix systems](lab4)
-- [`lab5` - IPC - Pipes in Unix systems](lab5)
-- [`lab6` - IPC - Message queues](lab6)
-- [`lab7` - IPC - Shared memory and semaphores](lab7)
-- [`lab8` - Threads](lab8)
-- [`lab9` - Thread synchronization methods - Mutexes](lab9)
-- [`lab10` - Sockets](lab10)
+- [`lab1` - Memory management, libraries and time measurements](cw01)
+- [`lab2` - File system, operations on files](cw02)
+- [`lab3` - Create processes, process environment and process controll (*forks*)](cw03)
+- [`lab4` - IPC - Signals in Unix systems](cw04)
+- [`lab5` - IPC - Pipes in Unix systems](cw05)
+- [`lab6` - IPC - Message queues](cw06)
+- [`lab7` - IPC - Shared memory and semaphores](cw07)
+- [`lab8` - Threads](cw08)
+- [`lab9` - Thread synchronization methods - Mutexes](cw09)
+- [`lab10` - Sockets](cw10)
 
 ### Requirements
 - gcc 
