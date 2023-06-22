@@ -2,7 +2,7 @@
 
 This repository contains all ten assignments for the Operating Systems course at AGH University of Science and Technology. The main aim of this course was to introduce students to the mechanics used in Unix-like operating systems, using the C language. Each task received the maximum number of points.  
 
-### Index
+## Index
 
 - [`lab1` - Memory management, libraries and time measurements](cw01)
 - [`lab2` - File system, operations on files](cw02)
@@ -15,12 +15,12 @@ This repository contains all ten assignments for the Operating Systems course at
 - [`lab9` - Thread synchronization methods - Mutexes](cw09)
 - [`lab10` - Sockets](cw10)
 
-### Requirements
+## Requirements
 - gcc 
 - make
 - Unix-like operating system (preferred Linux)
 
-### Running
+## Running
 
 To compile each program, use the following command in its directory::
 
